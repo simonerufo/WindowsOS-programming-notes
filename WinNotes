@@ -1,0 +1,4 @@
+Notes:
+- USE Developer Command prompt for Visual Studio
+	-- (optional install scoop,sublime text, llvm)
+- compile using cl (file to compile.c) /link library to use form WindowsAPI
