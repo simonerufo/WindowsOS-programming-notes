@@ -2,3 +2,8 @@ Notes:
 - USE Developer Command prompt for Visual Studio
 	-- (optional install scoop,sublime text, llvm)
 - compile using cl (file to compile.c) /link library to use form WindowsAPI
+
+- wchar_t (Wide Char type used for 2 bytes long chars)
+- wcslen (equivalent to strlen but for wchar_t strings)
+- TCHAR.H can refer both UNICODE and NOT UNICODE chars (e.g _tcslen wcslen or _tcslen strlen)
+- same with printf and sprintf
