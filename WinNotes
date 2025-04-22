@@ -7,3 +7,4 @@ Notes:
 - wcslen (equivalent to strlen but for wchar_t strings)
 - TCHAR.H can refer both UNICODE and NOT UNICODE chars (e.g _tcslen wcslen or _tcslen strlen)
 - same with printf and sprintf
+
