@@ -8,3 +8,15 @@ Notes:
 - TCHAR.H can refer both UNICODE and NOT UNICODE chars (e.g _tcslen wcslen or _tcslen strlen)
 - same with printf and sprintf
 
+- p 41 of Programming Windows Hungarian notation 
+
+-Debug useful infos:
+	
+    Printf won't function so here's a code trick:
+    	AllocConsole();
+    	HANDLE stdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    	WriteConsoleA(stdout, "Ciao\r\n", 6, NULL, NULL);
+    
+
+    OutputDebugStringA("ciao"); // debugger (it has to be attached to some debugger like VisualStudio)
+    #define BREAKPOINT __debugbreak() // breakpoint definition 

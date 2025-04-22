@@ -35,7 +35,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance,
      
      // creates a window based on a window class
      hwnd = CreateWindow (szAppName,                  // window class name
-                          TEXT ("The Hello Program"), // window caption
+                          TEXT (":)"), // window caption
                           WS_OVERLAPPEDWINDOW,        // window style
                           CW_USEDEFAULT,              // initial x position
                           CW_USEDEFAULT,              // initial y position
@@ -74,7 +74,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
           
           GetClientRect (hwnd, &rect) ; // obtains the dimensions of the window's client area
           
-          DrawText (hdc, TEXT ("Hello, Windows 98!"), -1, &rect, // displays a text string
+          DrawText (hdc, TEXT ("AAAAAAAAAAAAAAAA"), -1, &rect, // displays a text string
                     DT_SINGLELINE | DT_CENTER | DT_VCENTER) ;
           
           EndPaint (hwnd, &ps) ; // ends window painting

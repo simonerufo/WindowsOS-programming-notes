@@ -1,4 +1,2 @@
-@echo off
-echo Compiling scrnsz.c 
-cl scrnsz.c /link user32.lib
-pause
+@echo off 
+cl /nologo scrnsz.c /link user32.lib
