@@ -106,12 +106,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
 
-    AllocConsole();
-    printf("%s\n", "Hello");
-    HANDLE stdout = GetStdHandle(STD_OUTPUT_HANDLE);
-    WriteConsoleA(stdout, "Ciao\r\n", 6, NULL, NULL);
-    OutputDebugStringA("ciao"); // debugger 
-#define BREAKPOINT __debugbreak()
+    /*
+        Debug useful infos
+    */
+    //AllocConsole();
+    //printf("%s\n", "Hello");
+    //HANDLE stdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    //WriteConsoleA(stdout, "Ciao\r\n", 6, NULL, NULL);
+    //OutputDebugStringA("ciao"); // debugger 
+    //#define BREAKPOINT __debugbreak()
     
     // Message loop
     MSG msg;
