@@ -5,10 +5,14 @@
 				ref: https://github.com/northern/Win32Bitmaps
 
 		[Steps from tutorial: https://www.youtube.com/watch?v=hNKU8Jiza2g ]
+		[Allocating the backbuffer: https://www.youtube.com/watch?v=GAi_nTx1zG8]
 		- VirtualAlloc
+			( RESERVE,COMMIT or MODIFY the state of an area of pages in virtual memory of the caller process, 
+				memory in this spaces is initialized to zero)
 		- StretchDIBits
-		- Storing pixels in memory
-		- Gradient renderer
+				(Allocates in memory an area (often a rectangle) in the hwnd area)
+		- Storing pixels in memory (using VirtualAlloc and )
+		- Gradient renderer (OnCreate func)
 		- PeekMessage
 		- Animating window on the screen
 
@@ -21,14 +25,16 @@
 #include <stdio.h>
 #include <stdarg.h> 
 
+
 static char g_szAppName[] = "Gradient";
 static char g_szAppTitle[] = "random gradient";
 
-#define	DIB_WIDTH   640
+// definitely not a best practice!!
+#define	DIB_WIDTH   640 
 #define	DIB_HEIGHT  480
 
-BYTE* g_pBits = NULL; //bitmap surface
-LPBITMAPINFO g_lpBmi = NULL; //
+BYTE* g_pBits = NULL; // bitmap surface stored in mem
+LPBITMAPINFO g_lpBmi = NULL; // metadata for bitmap
 
 
 
@@ -46,6 +52,12 @@ static void __cdecl TRACE(const char *szString, ...)
 }
 
 /* 
+	Creating the bitmap according to bit per pixel selected(
+		- Initialize and allocate the Bitmap Info Header
+		- Allocating memory for Bitmap surface
+		- Allocting bitmap's Pixel infos
+	)
+
 	cx,cy -> bitmap dimension
 	iBpp  -> bit per pixel (8,16,24,32)
 	pBits -> [out] it will contain pointer to the buffer of pixels  
@@ -89,17 +101,30 @@ LPBITMAPINFO CreateDIB(int cx, int cy, int iBpp, BYTE** pBits)
 	ZeroMemory(lpBmi, iBmiSize);
 
 	// Allocate memory for the DIB surface.
-	if((*pBits = (BYTE*)malloc(iSurfaceSize)) == NULL) {
-		TRACE("Error allocating memory for bitmap bits\n");
-		return NULL;
-	}
+
+		//if((*pBits = (BYTE*)malloc(iSurfaceSize)) == NULL) {
+		//	TRACE("Error allocating memory for bitmap bits\n");
+		//	return NULL;
+		//}
+
+	 *pBits = (BYTE*)VirtualAlloc(NULL,
+	 							  iSurfaceSize,
+	 				  		  	  MEM_COMMIT, // use the memory right now
+	 				  		      PAGE_READWRITE);
+	 
+
+	 if (*pBits == NULL){
+	 	TRACE("Error allocating memory for bitmap bits\n");
+	 	return NULL;
+	 }
+	
 
 	ZeroMemory(*pBits, iSurfaceSize);
 
 	// Initialize bitmap info header
 	lpBmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	lpBmi->bmiHeader.biWidth = cx;
-	lpBmi->bmiHeader.biHeight = -(signed)cy;		// <-- NEGATIVE MEANS TOP DOWN!!!
+	lpBmi->bmiHeader.biHeight = -(signed)cy;		// <-- NEGATIVE MEANS TOP DOWN!!! (best practice)
 	lpBmi->bmiHeader.biPlanes = 1;
 	lpBmi->bmiHeader.biSizeImage = 0;
 	lpBmi->bmiHeader.biXPelsPerMeter = 0;
@@ -209,20 +234,26 @@ BOOL OnCreate(HWND hWnd, CREATESTRUCT FAR* lpCreateStruct)
 
 	// Write a pixel to the DIB surface
 	//DWORD* pixel = (DWORD*)g_pBits + (DIB_WIDTH / 2) + ((DIB_HEIGHT / 2) * DIB_WIDTH);
-	//*pixel = 0x00FFFFFF; // bianco
+	//*pixel = 0x00FFFFFF; 
 
+	return TRUE;
+}
+	
+
+void RenderGradient(int xOffset, int yOffset)
+ {
 	// Write a gradient to the DIB surface
 	for (int y = 0; y < DIB_HEIGHT; y++) {
     	for (int x = 0; x < DIB_WIDTH; x++) {
         	DWORD* pixel = (DWORD*)g_pBits + x + y * DIB_WIDTH;
-        	BYTE r = (BYTE)(x % 256);					// red depends on x value
-        	BYTE g = (BYTE)(y % 256);   				// green depends on y value
-        	BYTE b = (BYTE) (x + y  % 256);				// blue depends on x and y values
-        	// pixel compisition 0xRR0000 + 0x00GG00 + 0x0000BB
+        	BYTE r = (BYTE)(x + xOffset% 256);											// red depends on x value
+        	BYTE g = (BYTE)(y + yOffset% 256);   										// green depends on y value
+        	BYTE b = (BYTE)((x + xOffset) + (y + yOffset)  % 256);				// blue depends on x and y values
+        	// pixel compisition 0x00RR0000 + 0x00GG00 + 0x0000BB
+        	// (NOTE: 0xAA000000 is set to zero so we ignore that )
         	*pixel = (r << 16) | (g << 8) | b;
     	}
 	}
-	return TRUE;
 }
 
 void OnDestroy(HWND hWnd)
@@ -248,10 +279,10 @@ void OnPaint(HWND hWnd)
 	RECT rc;
 	GetClientRect(hWnd, &rc);
 	StretchDIBits(hDC, 
-				  0, 0, rc.right - rc.left, rc.bottom - rc.top,
+				  0, 0, rc.right - rc.left, rc.bottom - rc.top, // window width and window height
 				  0, 0, DIB_WIDTH, DIB_HEIGHT, 
-				  (BYTE*)g_pBits, 
-				  g_lpBmi,
+				  (BYTE*)g_pBits, // bitmap memory
+				  g_lpBmi, 		  // bitmap info
 				  DIB_RGB_COLORS, SRCCOPY);
 
 	//SetDIBitsToDevice(hDC, 0, 0, DIB_WIDTH, DIB_HEIGHT, 0, 0, 0, DIB_HEIGHT, (BYTE*)g_pBits, g_lpBmi, DIB_RGB_COLORS);
@@ -267,6 +298,7 @@ BOOL OnEraseBkgnd(HWND hWnd, HDC hdc)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(iMsg) {
+		// HANDLE_MESSAGE() is a Macro from windowsx.h 
 		HANDLE_MSG(hWnd, WM_CREATE, OnCreate);
 		HANDLE_MSG(hWnd, WM_DESTROY, OnDestroy);
 		HANDLE_MSG(hWnd, WM_PAINT, OnPaint);
@@ -278,6 +310,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
+	BOOL Running;
 	MSG msg;
 	HWND hWnd;
 	WNDCLASSEX wc;
@@ -301,7 +334,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 		NULL,
 		g_szAppName,
 		g_szAppTitle,
-		WS_OVERLAPPEDWINDOW,
+		WS_OVERLAPPEDWINDOW|WS_VISIBLE,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
@@ -312,13 +345,61 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 		NULL
 	);
 
-	ShowWindow(hWnd, iCmdShow);
-	UpdateWindow(hWnd);
+	//ShowWindow(hWnd, iCmdShow);
+	//UpdateWindow(hWnd);
 
-	while(GetMessage(&msg, NULL, 0, 0)) {
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+	if(hWnd)
+	{
+		int xOffset = 0;
+		int yOffset = 0;
+		Running = TRUE;
+		while(Running)
+		{	
+
+			while(PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+			{
+				if(msg.message == WM_QUIT)
+				{
+					Running = FALSE;
+				}
+
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+
+			RenderGradient(xOffset, yOffset);
+			
+		    // grab a screen DC and blit the DIB (immediate mode) ()
+		    //HDC hdc = GetDC(hWnd);
+		    //RECT rc;
+		    //GetClientRect(hWnd, &rc);
+		    //StretchDIBits(
+		    //    hdc,
+		    //    0, 0,                        // dest x,y
+		    //    rc.right - rc.left,         // dest width
+		    //    rc.bottom - rc.top,         // dest height
+		    //    0, 0,                       // src x,y
+		    //    DIB_WIDTH, DIB_HEIGHT,      // src width,height
+		    //    g_pBits,
+		    //    g_lpBmi,
+		    //    DIB_RGB_COLORS,
+		    //    SRCCOPY
+		    //);
+		    //ReleaseDC(hWnd, hdc);
+
+			// invalidate mode (best practice)
+			InvalidateRect(hWnd, NULL, FALSE);
+			Sleep(1);
+
+			++xOffset;
+			++yOffset;
+		}
 	}
+
+	//while(GetMessage(&msg, NULL, 0, 0)) {
+	//	TranslateMessage(&msg);
+	//	DispatchMessage(&msg);
+	//}
 
 	return msg.wParam;
 }
