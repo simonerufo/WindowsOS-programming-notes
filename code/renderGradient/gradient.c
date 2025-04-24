@@ -5,8 +5,8 @@
 				ref: https://github.com/northern/Win32Bitmaps
 
 		[Steps from tutorial: https://www.youtube.com/watch?v=hNKU8Jiza2g ]
-		[Allocating the backbuffer: https://www.youtube.com/watch?v=GAi_nTx1zG8]
-		- VirtualAlloc
+		[Allocating the backbuffer: https://www.youtube.com/watch?v=GAi_nTx1zG8
+]		- VirtualAlloc
 			( RESERVE,COMMIT or MODIFY the state of an area of pages in virtual memory of the caller process, 
 				memory in this spaces is initialized to zero)
 		- StretchDIBits
@@ -28,7 +28,7 @@
 
 static char g_szAppName[] = "Gradient";
 static char g_szAppTitle[] = "random gradient";
-
+static BOOL Running;
 // definitely not a best practice!!
 #define	DIB_WIDTH   640 
 #define	DIB_HEIGHT  480
@@ -248,7 +248,7 @@ void RenderGradient(int xOffset, int yOffset)
         	DWORD* pixel = (DWORD*)g_pBits + x + y * DIB_WIDTH;
         	BYTE r = (BYTE)(x + xOffset% 256);											// red depends on x value
         	BYTE g = (BYTE)(y + yOffset% 256);   										// green depends on y value
-        	BYTE b = (BYTE)((x + xOffset) + (y + yOffset)  % 256);				// blue depends on x and y values
+        	BYTE b = (BYTE)((x + xOffset) + (y + yOffset) << 16 % 256);					// blue depends on x and y values
         	// pixel compisition 0x00RR0000 + 0x00GG00 + 0x0000BB
         	// (NOTE: 0xAA000000 is set to zero so we ignore that )
         	*pixel = (r << 16) | (g << 8) | b;
@@ -266,6 +266,7 @@ void OnDestroy(HWND hWnd)
 		free(g_lpBmi);
 	}
 	
+	Running = FALSE;
 	PostQuitMessage(0);
 }
 
@@ -310,7 +311,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
-	BOOL Running;
+	
 	MSG msg;
 	HWND hWnd;
 	WNDCLASSEX wc;
@@ -344,9 +345,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 		hInstance,
 		NULL
 	);
-
-	//ShowWindow(hWnd, iCmdShow);
-	//UpdateWindow(hWnd);
 
 	if(hWnd)
 	{
@@ -395,11 +393,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 			++yOffset;
 		}
 	}
-
-	//while(GetMessage(&msg, NULL, 0, 0)) {
-	//	TranslateMessage(&msg);
-	//	DispatchMessage(&msg);
-	//}
 
 	return msg.wParam;
 }
