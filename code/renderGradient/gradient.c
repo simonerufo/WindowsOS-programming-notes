@@ -26,9 +26,10 @@
 #include <stdarg.h> 
 
 
-static char g_szAppName[] = "Gradient";
-static char g_szAppTitle[] = "random gradient";
+static char g_szAppName[] = TEXT("Gradient");
+static char g_szAppTitle[] = TEXT("random gradient");
 static BOOL Running;
+
 // definitely not a best practice!!
 #define	DIB_WIDTH   640 
 #define	DIB_HEIGHT  480
