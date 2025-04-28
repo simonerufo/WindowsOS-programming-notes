@@ -206,7 +206,7 @@ void DisplayBufferInWindow(HDC DeviceContext, int WindowWidth, int WindowHeight)
 	// referenced by the specified device context includes a back buffer.
 	SwapBuffers(DeviceContext); 
 
-	Angle += 30.0f * deltaTime; // 45 degrees per second
+	Angle += 30.0f * deltaTime; // 30 degrees per second
 	if(Angle >= 360.0f) Angle -= 360.0f;
 
 }
