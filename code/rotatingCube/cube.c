@@ -74,12 +74,21 @@ void DestroyOpenGL(HGLRC OpenGLRC)
     }
 }
 
+/*
+	fovY: Field of view (vertical) in degrees (for example: 45°).
+	aspect: Aspect ratio of the window = width / height.
+	zNear: Distance to the near clipping plane.
+	zFar: Distance to the far clipping plane.
+*/
 void SetPerspective(float fovY, float aspect, float zNear, float zFar)
 {
-    float fH = tanf(fovY / 360.0f * 3.14159f) * zNear;
+    float fH = tanf((fovY * 0.5f) * (3.14159f / 180.0f)) * zNear;
+
     float fW = fH * aspect;
     
-    glFrustum(-fW, fW, -fH, fH, zNear, zFar);
+    // set the OpenGL 3D perspective
+    // gluPerspective() does the same, without manual calculations (GL\glu.h required)
+    glFrustum(-fW, fW, -fH, fH, zNear, zFar); 
 }
 
 void DisplayBufferInWindow(HDC DeviceContext, int WindowWidth, int WindowHeight)
