@@ -74,14 +74,106 @@ void DestroyOpenGL(HGLRC OpenGLRC)
     }
 }
 
-/*
+
+GLuint LoadTextureFromBMP(const char* filename) 
+{
+    HBITMAP hBitmap;
+    BITMAP bmp;
+    GLuint textureID;
+    HDC hdc = GetDC(NULL);
+    HDC memDC = CreateCompatibleDC(hdc);
+
+    // Load the image using Win32 API
+    hBitmap = (HBITMAP)LoadImageA(
+        NULL, filename, IMAGE_BITMAP, 0, 0,
+        LR_LOADFROMFILE | LR_CREATEDIBSECTION
+    );
+
+    if (!hBitmap) {
+        MessageBoxA(0, "Failed to load BMP file", "Error", MB_OK);
+        DeleteDC(memDC);
+        ReleaseDC(NULL, hdc);
+        return 0;
+    }
+
+    // Get basic bitmap info
+    GetObject(hBitmap, sizeof(BITMAP), &bmp);
+
+    int width = bmp.bmWidth;
+    int height = bmp.bmHeight;
+    int imageSize = width * height * 3;
+
+    // Create buffer for pixel data
+    BYTE* pixels = (BYTE*)malloc(imageSize);
+
+    if (!pixels) {
+        MessageBoxA(0, "Failed to allocate memory", "Error", MB_OK);
+        DeleteObject(hBitmap);
+        DeleteDC(memDC);
+        ReleaseDC(NULL, hdc);
+        return 0;
+    }
+
+    // Prepare BITMAPINFO
+    BITMAPINFO bi;
+    ZeroMemory(&bi, sizeof(bi));
+    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth = width;
+    bi.bmiHeader.biHeight = -height; // Negative to avoid flipping
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 24;
+    bi.bmiHeader.biCompression = BI_RGB;
+
+    // Select bitmap into memDC and extract bits
+    SelectObject(memDC, hBitmap);
+    GetDIBits(memDC, hBitmap, 0, height, pixels, &bi, DIB_RGB_COLORS);
+
+    // Generate texture
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    // Set texture parameters
+    /* Note: GL_NEAREST is generally faster than GL_LINEAR, 
+    but it can produce textured images with sharper edges 
+    because the transition between texture elements is not as smooth. 
+    The default value of GL_TEXTURE_MAG_FILTER is GL_LINEAR.
+    */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    // load bitmap to OpenGL
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGB,
+        width,
+        height,
+        0,
+        GL_BGR_EXT,
+        GL_UNSIGNED_BYTE,
+        pixels
+    );
+
+    // Cleanup
+    free(pixels);
+    DeleteObject(hBitmap);
+    DeleteDC(memDC);
+    ReleaseDC(NULL, hdc);
+
+    return textureID;
+}
+
+
+void SetPerspective(float fovY, float aspect, float zNear, float zFar)
+{
+	/*
+
 	fovY: Field of view (vertical) in degrees (for example: 45°).
 	aspect: Aspect ratio of the window = width / height.
 	zNear: Distance to the near clipping plane.
 	zFar: Distance to the far clipping plane.
-*/
-void SetPerspective(float fovY, float aspect, float zNear, float zFar)
-{
+	
+	*/
     float fH = tanf((fovY * 0.5f) * (3.14159f / 180.0f)) * zNear;
 
     float fW = fH * aspect;
@@ -91,33 +183,8 @@ void SetPerspective(float fovY, float aspect, float zNear, float zFar)
     glFrustum(-fW, fW, -fH, fH, zNear, zFar); 
 }
 
-void DisplayBufferInWindow(HDC DeviceContext, int WindowWidth, int WindowHeight)
+void DrawRainbowCube()
 {
-	// framerate handling
-	DWORD currentTime = GetTickCount(); 
-	float deltaTime = (currentTime - lastTime) / 1000.0f;
-	lastTime = currentTime;
-
-	//Platform independet OpenGL functions:
-	glViewport(0,0, WindowWidth, WindowHeight); // set the viewport
-	
-	// camera setup
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	SetPerspective(45.0f, (float)WindowWidth / (float)WindowHeight, 0.1f, 100.0f);
-
-	// transformation setup
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glTranslatef(0.0f, 0.0f, -5.0f); // move cube back
-	glRotatef(Angle, 1.0f, 1.0f, 0.0f); // rotate cube
-
-
-	glClearColor(0.129837f, 0.283764f, 0.54235f, 0.0f); // specify clear values for the color buffers
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //  clear buffers to preset values + Depth buffers (Z-Buffers is a property that  the device uses to store depth infos)
-	
-	glEnable(GL_DEPTH_TEST); // Enable depth test for 3D
-
 	// draw a cube
 	glBegin(GL_QUADS);
 	
@@ -200,15 +267,137 @@ void DisplayBufferInWindow(HDC DeviceContext, int WindowWidth, int WindowHeight)
 	glVertex3f(-1, -1, 1);
 	
 	glEnd();
+}
+
+void DrawTextureCube(const char* filename)
+{
+	GLuint texture = LoadTextureFromBMP(filename);
+
+	// Enable texturing
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture); 
 	
+	// draw a cube
+	glBegin(GL_QUADS);
 	
+	// Front face (z+)
+	glTexCoord2f(0.0f, 0.0f);
+	glVertex3f(-1, -1, 1);
+	
+	glTexCoord2f(1.0f, 0.0f); 
+	glVertex3f(1, -1, 1);
+	
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex3f(1, 1, 1);
+	
+	glTexCoord2f(0.0f, 1.0f);
+	glVertex3f(-1, 1, 1);
+	
+	// Back face (z-)
+	glTexCoord2f(0.0f, 0.0f);
+	glVertex3f(-1, -1, -1);
+	
+	glTexCoord2f(1.0f, 0.0f);
+	glVertex3f(-1, 1, -1);
+	
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex3f(1, 1, -1);
+	
+	glTexCoord2f(0.0f, 1.0f);
+	glVertex3f(1, -1, -1);
+	
+	// Left face (x-)
+	glTexCoord2f(0.0f, 0.0f);
+	glVertex3f(-1, -1, -1);
+	
+	glTexCoord2f(1.0f, 0.0f);
+	glVertex3f(-1, -1, 1);
+	
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex3f(-1, 1, 1);
+	
+	glTexCoord2f(0.0f, 1.0f);
+	glVertex3f(-1, 1, -1);
+	
+	// Right face (x+)
+	glTexCoord2f(0.0f, 0.0f);
+	glVertex3f(1, -1, -1);
+	
+	glTexCoord2f(1.0f, 0.0f);
+	glVertex3f(1, 1, -1);
+	
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex3f(1, 1, 1);
+	
+	glTexCoord2f(0.0f, 1.0f);
+	glVertex3f(1, -1, 1);
+	
+	// Top face (y+)
+	glTexCoord2f(0.0f, 0.0f);
+	glVertex3f(-1, 1, -1);
+	
+	glTexCoord2f(1.0f, 0.0f);
+	glVertex3f(-1, 1, 1);
+	
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex3f(1, 1, 1);
+	
+	glTexCoord2f(0.0f, 1.0f);
+	glVertex3f(1, 1, -1);
+	
+	// Bottom face (y-)
+	glTexCoord2f(0.0f, 0.0f);
+	glVertex3f(-1, -1, -1);
+	
+	glTexCoord2f(1.0f, 0.0f);
+	glVertex3f(1, -1, -1);
+	
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex3f(1, -1, 1);
+	
+	glTexCoord2f(0.0f, 1.0f);
+	glVertex3f(-1, -1, 1);
+	
+	glEnd();
+}
+
+void DisplayBufferInWindow(HDC DeviceContext, int WindowWidth, int WindowHeight)
+{
+	// framerate handling
+	DWORD currentTime = GetTickCount(); 
+	float deltaTime = (currentTime - lastTime) / 1000.0f;
+	lastTime = currentTime;
+
+	//Platform independet OpenGL functions:
+	glViewport(0,0, WindowWidth, WindowHeight); // set the viewport
+	
+	// camera setup
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	SetPerspective(45.0f, (float)WindowWidth / (float)WindowHeight, 0.1f, 100.0f);
+
+	// transformation setup
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glTranslatef(0.0f, 0.0f, -5.0f); // move cube back
+	glRotatef(Angle, 1.0f, 1.0f, 0.0f); // rotate cube
+
+
+	glClearColor(0.129837f, 0.283764f, 0.54235f, 0.0f); // specify clear values for the color buffers
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //  clear buffers to preset values + Depth buffers (Z-Buffers is a property that  the device uses to store depth infos)
+	
+	glEnable(GL_DEPTH_TEST); // Enable depth test for 3D
+
+
+	// DrawRainbowCube();
+	DrawTextureCube(".\\dirt.bmp");
+
 	// The SwapBuffers function exchanges the front and back buffers if the current pixel format for the window
 	// referenced by the specified device context includes a back buffer.
 	SwapBuffers(DeviceContext); 
 
 	Angle += 30.0f * deltaTime; // 30 degrees per second
 	if(Angle >= 360.0f) Angle -= 360.0f;
-
 }
 
 void OnDestroy(HWND hWnd)

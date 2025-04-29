@@ -1,0 +1,7 @@
+todo:
+
+- apply texture to cube
+- object interaction ( throw [collision detection])
+		- touching the object, spinning it increasing speed
+- physics: gravity, bounce 
+- camera moving 
