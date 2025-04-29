@@ -361,6 +361,125 @@ void DrawTextureCube(const char* filename)
 	glEnd();
 }
 
+void DrawTextureGrass()
+{
+	GLuint bTexture = LoadTextureFromBMP(".\\dirt.bmp");
+	GLuint sTexture = LoadTextureFromBMP(".\\dirtgrass.bmp");
+	GLuint tTexture = LoadTextureFromBMP(".\\grass.bmp");
+
+	// Enable texturing
+	glEnable(GL_TEXTURE_2D);
+		
+	
+	// Front face (z+)
+	glBindTexture(GL_TEXTURE_2D, sTexture);
+	glBegin(GL_QUADS);
+
+	glTexCoord2f(0, 0);
+	glVertex3f(1, 1, 1);
+	
+	glTexCoord2f(1, 0); 
+	glVertex3f(-1, 1, 1);
+	
+	glTexCoord2f(1, 1);
+	glVertex3f(-1, -1, 1);
+	
+	glTexCoord2f(0, 1);
+	glVertex3f(1, -1, 1);
+	
+	glEnd();
+	 
+	// Back face (z-)
+	glBindTexture(GL_TEXTURE_2D, sTexture);
+	glBegin(GL_QUADS);
+
+	glTexCoord2f(1, 0);
+	glVertex3f(-1, 1, -1);
+	
+	glTexCoord2f(0, 0);
+	glVertex3f(1, 1, -1);
+	
+	glTexCoord2f(0, 1);
+	glVertex3f(1, -1, -1);
+	
+	glTexCoord2f(1, 1);
+	glVertex3f(-1, -1, -1);
+	
+	glEnd();
+	
+	// Left face (x-)
+	glBindTexture(GL_TEXTURE_2D, sTexture);
+	glBegin(GL_QUADS);
+	
+	glTexCoord2f(0, 1);
+	glVertex3f(-1, -1, -1);
+	
+	glTexCoord2f(1, 1);
+	glVertex3f(-1, -1, 1); 
+	
+	glTexCoord2f(1, 0);
+	glVertex3f(-1, 1, 1); 
+	
+	glTexCoord2f(0, 0);
+	glVertex3f(-1, 1, -1); 
+	
+	glEnd();
+
+	// Right face (x+)
+	glBindTexture(GL_TEXTURE_2D, sTexture);
+	glBegin(GL_QUADS);
+
+	glTexCoord2f(0, 0);
+	glVertex3f(1, 1, 1);
+	
+	glTexCoord2f(1, 0);
+	glVertex3f(1, 1, -1);
+	
+	glTexCoord2f(1, 1);
+	glVertex3f(1, -1, -1);
+	
+	glTexCoord2f(0, 1);
+	glVertex3f(1, -1, 1);
+	
+	glEnd();
+
+	// Top face (y+)
+	glBindTexture(GL_TEXTURE_2D, tTexture);
+	glBegin(GL_QUADS);
+
+	glTexCoord2f(0.0f, 0.0f);
+	glVertex3f(-1, 1, -1);
+	
+	glTexCoord2f(1.0f, 0.0f);
+	glVertex3f(-1, 1, 1);
+	
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex3f(1, 1, 1);
+	
+	glTexCoord2f(0.0f, 1.0f);
+	glVertex3f(1, 1, -1);
+	
+	glEnd();
+
+	// Bottom face (y-)
+	glBindTexture(GL_TEXTURE_2D, bTexture);
+	glBegin(GL_QUADS);
+
+	glTexCoord2f(0.0f, 0.0f);
+	glVertex3f(-1, -1, -1);
+	
+	glTexCoord2f(1.0f, 0.0f);
+	glVertex3f(1, -1, -1);
+	
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex3f(1, -1, 1);
+	
+	glTexCoord2f(0.0f, 1.0f);
+	glVertex3f(-1, -1, 1);
+	
+	glEnd();
+}
+
 void DisplayBufferInWindow(HDC DeviceContext, int WindowWidth, int WindowHeight)
 {
 	// framerate handling
@@ -390,13 +509,14 @@ void DisplayBufferInWindow(HDC DeviceContext, int WindowWidth, int WindowHeight)
 
 
 	// DrawRainbowCube();
-	DrawTextureCube(".\\dirt.bmp");
+	// DrawTextureCube(".\\dirt.bmp");
+	DrawTextureGrass();
 
 	// The SwapBuffers function exchanges the front and back buffers if the current pixel format for the window
 	// referenced by the specified device context includes a back buffer.
 	SwapBuffers(DeviceContext); 
 
-	Angle += 30.0f * deltaTime; // 30 degrees per second
+	Angle += 90.0f * deltaTime; // 30 degrees per second
 	if(Angle >= 360.0f) Angle -= 360.0f;
 }
 
