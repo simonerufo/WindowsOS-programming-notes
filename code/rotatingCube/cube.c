@@ -6,6 +6,9 @@
 			- OpenGL RC (render context), the equivalent of windows Device Context 
 		- OpenGL 1.0 docs: https://registry.khronos.org/OpenGL/specs/gl/glspec10.pdf
 
+
+		to make the cube clickable i have to project 3D points to 2D screen:
+
 */
 
 #include <windows.h>
@@ -17,6 +20,15 @@ static BOOL Running = TRUE;
 static HGLRC OpenGLRC;
 static float Angle = 0.0f; // cube rotation angle
 static DWORD lastTime = 0; // last frame timestamp
+
+static	GLubyte faceColors[6][3] = {
+	    {255, 0, 0},     // Front  
+	    {0, 255, 0},     // Back  
+	    {0, 0, 255},     // Left  
+	    {255, 255, 0},   // Right  
+	    {0, 255, 255},   // Top  
+	    {255, 0, 255}    // Bottom  
+	};
 
 HGLRC InitOpenGL(HWND hWnd)
 {
@@ -183,12 +195,72 @@ void SetPerspective(float fovY, float aspect, float zNear, float zFar)
     glFrustum(-fW, fW, -fH, fH, zNear, zFar); 
 }
 
+
+void DrawCube()
+{
+
+	glBegin(GL_QUADS);
+
+	// Front face (z+)
+
+	glColor3ubv(faceColors[0]);
+	glVertex3f(-1, -1, 1);
+	glVertex3f(1, -1, 1);
+	glVertex3f(1, 1, 1);
+	glVertex3f(-1, 1, 1);
+	
+	// Back face (z-)
+
+	glColor3ubv(faceColors[1]);
+	glVertex3f(-1, -1, -1);
+	glVertex3f(-1, 1, -1);
+	glVertex3f(1, 1, -1);
+	glVertex3f(1, -1, -1);
+	
+	// Left face (x-)
+
+	glColor3ubv(faceColors[2]);
+	glVertex3f(-1, -1, -1);
+	glVertex3f(-1, -1, 1);
+	glVertex3f(-1, 1, 1);
+	glVertex3f(-1, 1, -1);
+	
+	// Right face (x+)
+
+	glColor3ubv(faceColors[3]);
+	glVertex3f(1, -1, -1);
+	glVertex3f(1, 1, -1);
+	glVertex3f(1, 1, 1);
+	glVertex3f(1, -1, 1);
+	
+	// Top face (y+)
+
+	glColor3ubv(faceColors[4]);
+	glVertex3f(-1, 1, -1);
+	glVertex3f(-1, 1, 1);
+	glVertex3f(1, 1, 1);
+	glVertex3f(1, 1, -1);
+	
+	// Bottom face (y-)
+	
+	glColor3ubv(faceColors[5]);
+	glVertex3f(-1, -1, -1);
+	glVertex3f(1, -1, -1);
+	glVertex3f(1, -1, 1);
+	glVertex3f(-1, -1, 1);
+	
+	glEnd();
+
+
+}
+
 void DrawRainbowCube()
 {
 	// draw a cube
 	glBegin(GL_QUADS);
-	
+
 	// Front face (z+)
+
 	glColor3f(1, 0, 0); // Red
 	glVertex3f(-1, -1, 1);
 	
@@ -447,16 +519,16 @@ void DrawTextureGrass()
 	glBindTexture(GL_TEXTURE_2D, tTexture);
 	glBegin(GL_QUADS);
 
-	glTexCoord2f(0.0f, 0.0f);
+	glTexCoord2f(0, 0);
 	glVertex3f(-1, 1, -1);
 	
-	glTexCoord2f(1.0f, 0.0f);
+	glTexCoord2f(1, 0);
 	glVertex3f(-1, 1, 1);
 	
-	glTexCoord2f(1.0f, 1.0f);
+	glTexCoord2f(1, 1);
 	glVertex3f(1, 1, 1);
 	
-	glTexCoord2f(0.0f, 1.0f);
+	glTexCoord2f(0, 1);
 	glVertex3f(1, 1, -1);
 	
 	glEnd();
@@ -465,16 +537,16 @@ void DrawTextureGrass()
 	glBindTexture(GL_TEXTURE_2D, bTexture);
 	glBegin(GL_QUADS);
 
-	glTexCoord2f(0.0f, 0.0f);
+	glTexCoord2f(0, 0);
 	glVertex3f(-1, -1, -1);
 	
-	glTexCoord2f(1.0f, 0.0f);
+	glTexCoord2f(1, 0);
 	glVertex3f(1, -1, -1);
 	
-	glTexCoord2f(1.0f, 1.0f);
+	glTexCoord2f(1, 1);
 	glVertex3f(1, -1, 1);
 	
-	glTexCoord2f(0.0f, 1.0f);
+	glTexCoord2f(0, 1);
 	glVertex3f(-1, -1, 1);
 	
 	glEnd();
@@ -510,13 +582,14 @@ void DisplayBufferInWindow(HDC DeviceContext, int WindowWidth, int WindowHeight)
 
 	// DrawRainbowCube();
 	// DrawTextureCube(".\\dirt.bmp");
-	DrawTextureGrass();
+	// DrawTextureGrass();
+	 DrawCube();
 
 	// The SwapBuffers function exchanges the front and back buffers if the current pixel format for the window
 	// referenced by the specified device context includes a back buffer.
 	SwapBuffers(DeviceContext); 
 
-	Angle += 90.0f * deltaTime; // 30 degrees per second
+	Angle += 90.0f * deltaTime; // 90 degrees per second
 	if(Angle >= 360.0f) Angle -= 360.0f;
 }
 
@@ -525,7 +598,6 @@ void OnDestroy(HWND hWnd)
 	Running = FALSE;
 	PostQuitMessage(0);
 }
-
 
 void OnPaint(HWND hWnd)
 {
@@ -542,12 +614,55 @@ void OnPaint(HWND hWnd)
 	EndPaint(hWnd, &ps);
 }
 
+void OnCubeClick(HWND hWnd, int xPos, int yPos)
+{
+	char szBuffer[1024];
+
+	snprintf(szBuffer, 19, "xPos: %d yPos: %d\n", xPos, yPos);
+    MessageBox(hWnd, szBuffer, "OnClick", MB_OK | MB_ICONINFORMATION);
+}
+
+void OnMouseClick(HWND hWnd, int x, int y, int winHeight)
+{
+    GLubyte pixel[3];
+    glReadPixels(x, winHeight - y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixel);
+
+    for (int i = 0; i < 6; i++) {
+        if (pixel[0] == faceColors[i][0] &&
+            pixel[1] == faceColors[i][1] &&
+            pixel[2] == faceColors[i][2]) {
+            
+			char szBuffer[64];
+			snprintf(szBuffer, 29, "xPos: %d yPos: %d face: %d\n", x, y, i);
+    		// MessageBox(hWnd, szBuffer, "OnClick", MB_OK | MB_ICONINFORMATION);
+            AllocConsole();
+        	HANDLE stdout = GetStdHandle(STD_OUTPUT_HANDLE);
+            WriteConsoleA(stdout, szBuffer, 28, NULL, NULL);
+            break;
+
+        }
+    }
+}
+
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(iMsg) 
 	{
 		HANDLE_MSG(hWnd, WM_DESTROY, OnDestroy);
 		HANDLE_MSG(hWnd, WM_PAINT, OnPaint);
+
+		case WM_LBUTTONDOWN: 
+		{
+			int xPos = GET_X_LPARAM(lParam);
+    		int yPos = GET_Y_LPARAM(lParam);
+    		RECT rect;
+
+    		GetClientRect(hWnd, &rect);
+    		int height = rect.bottom - rect.top;
+    		
+    		OnMouseClick(hWnd, xPos, yPos, height);
+		}
 	}
 
 	return DefWindowProc(hWnd, iMsg, wParam, lParam);	
