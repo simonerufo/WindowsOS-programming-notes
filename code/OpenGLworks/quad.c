@@ -25,22 +25,27 @@ static unsigned int EBO;
 #define ATTRIB_POSITION 0
 
 
-const char* vertexShaderSource = 
+const char *vertexShaderSource =
     "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
+    "layout (location = 1) in vec3 aColor;\n"
+    "out vec3 ourColor;\n"
     "void main()\n"
     "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+    "   gl_Position = vec4(aPos, 1.0);\n"
+    "   ourColor = aColor;\n"
     "}\0";
 
 
-const char* fragmentShaderSource =
+
+const char *fragmentShaderSource = 
     "#version 330 core\n"
     "out vec4 FragColor;\n"
+    "in vec3 ourColor;\n"
     "void main()\n"
     "{\n"
-    "  FragColor = vec4(1.0f, 1.0f, 0.2f, 1.0f);\n"
-    "}\0";
+    "   FragColor = vec4(ourColor, 1.0f);\n"
+    "}\n\0";
 
 static void DebugConsole()
 {
@@ -205,14 +210,21 @@ void CnLShaders()
 
 void initTriangleBuffers()
 {
-    float vertices[] = 
-    {
-         0.5f,  0.5f, 0.0f,  // top right
-         0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-        -0.5f,  0.5f, 0.0f   // top left 
-    };
+    // float vertices[] = 
+    // {
+    //      0.5f,  0.5f, 0.0f,  // top right
+    //      0.5f, -0.5f, 0.0f,  // bottom right
+    //     -0.5f, -0.5f, 0.0f,  // bottom left
+    //     -0.5f,  0.5f, 0.0f   // top left 
+    // };
 
+    float vertices[] = {
+        // positions         // colors
+         0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  // top right    0 
+         0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // bottom right 1
+        -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  // bottom left  2
+        -0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f   // top left     3
+    };
     unsigned int indices[] = 
     {  // note that we start from 0!
         0, 1, 3,   // first triangle
@@ -231,8 +243,12 @@ void initTriangleBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    // vertex attributes
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    // color attributes
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),(void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
@@ -244,7 +260,7 @@ void initTriangleBuffers()
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     glBindVertexArray(0); 
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
 void SetPerspective(float fovY, float aspect, float zNear, float zFar)
@@ -283,9 +299,8 @@ void Display(HDC DeviceContext, HWND hWnd)
     glBindVertexArray(VAO);
     // draw the object 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    
-    SwapBuffers(DeviceContext);
 
+    SwapBuffers(DeviceContext);
 }
 
 
