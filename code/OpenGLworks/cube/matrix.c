@@ -1,6 +1,5 @@
 #include <math.h>
 #include <GL/gl.h>
-#include <GLFW/glfw3.h>
 
 /* 4×4 matrix in column-major order */
 typedef GLfloat mat4[16];
