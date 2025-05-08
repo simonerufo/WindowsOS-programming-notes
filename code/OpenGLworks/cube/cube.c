@@ -323,8 +323,8 @@ void Display(HDC DeviceContext, HWND hWnd, int width, int height)
     mat4_identity(projection);
 
     mat4_rotate(model, Angle, 1.0f, 1.0f, 0.0f);
-    mat4_translate(view, 0.0f, 0.0f, -3.0f);
-    mat4_perspective(projection, 3.1415926f/4.0f, width/height, 0.1f, 100.0f);
+    mat4_translate(view, 0.0f, 0.0f, -5.0f);
+    mat4_perspective(projection, 3.1415926f/4.0f,(float)width/(float)height, 0.1f, 100.0f);
 
     unsigned int modelLoc = glGetUniformLocation(shaderProgram, "model");
     unsigned int viewLoc  = glGetUniformLocation(shaderProgram, "view");
@@ -342,7 +342,7 @@ void Display(HDC DeviceContext, HWND hWnd, int width, int height)
     SwapBuffers(DeviceContext);
 
     Angle += 0.5f * deltaTime;
-    if (Angle == 360.0f) Angle = 0.0f;
+    if (Angle >= 360.0f) Angle = 0.0f;
 }
 
 static void DebugConsole()
