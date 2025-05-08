@@ -16,6 +16,7 @@ static unsigned int VAO = 0;
 static unsigned int shaderProgram = 0;
 static unsigned int vertexShader = 0;
 static unsigned int fragmentShader = 0;
+static GLuint texture = 0;
 
 static float vertices[] = 
     {
@@ -95,7 +96,7 @@ void getScreenDim_Win32(HWND hWnd, int *width, int* height)
     *height = rect.bottom - rect.top;
 }
 
-void MyCheckGLErrors(const char *context)
+void CheckGLErrors(const char *context)
 {
     GLenum err;
     while ( (err = glGetError()) != GL_NO_ERROR)
@@ -211,25 +212,33 @@ GLuint LoadTextureFromBMP_Win32(const char* filename)
     return texID;
 }
 
+void SetupViewport(HWND hWnd)
+{
+    int width, height;
+    getScreenDim_Win32(hWnd, &width, &height);
+    glViewport(0, 0, width, height);
+    CheckGLErrors("Viewport");
+}
+
 void CompileAndLinkShaders()
 {
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
-    MyCheckGLErrors("Compile vertex shader");
+    CheckGLErrors("Compile vertex shader");
 
 
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
-    MyCheckGLErrors("Compile fragment shader");
+    CheckGLErrors("Compile fragment shader");
 
 
     shaderProgram = glCreateProgram(); 
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
-    MyCheckGLErrors("shader program link");
+    CheckGLErrors("shader program link");
 
     glUseProgram(shaderProgram);
 
@@ -246,93 +255,95 @@ void BindVertexArrays()
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    MyCheckGLErrors("VBO Bind");
+    CheckGLErrors("VBO Bind");
 
     // position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    MyCheckGLErrors("Vertex Attribute position");
+    CheckGLErrors("Vertex Attribute position");
     // texture coord attribute
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    MyCheckGLErrors("Vertex Attribute texture");
+    CheckGLErrors("Vertex Attribute texture");
 }
 
 void LoadAndCreateTextures()
 {
-    GLuint texture = LoadTextureFromBMP_Win32("dirt.bmp");
+    texture = LoadTextureFromBMP_Win32("dirt.bmp");
     if (texture == 0) {
         fprintf(stderr, "Failed to load texture!\n");
         return;
     }
     // glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-    MyCheckGLErrors("Bind texture");
+    CheckGLErrors("Bind texture");
 
     // set the texture wrapping parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    MyCheckGLErrors("Texture wrapping");
+    CheckGLErrors("Texture wrapping");
 
     // set texture filtering parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    MyCheckGLErrors("Texture filtering");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    CheckGLErrors("Texture filtering");
 
     // load image, create texture and generate mipmaps
     //GLuint data = LoadTextureFromBMP_Win32("dirt.bmp");
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     //glGenerateMipmap(GL_TEXTURE_2D);
-    //MyCheckGLErrors("Image load and texture creation");
+    //CheckGLErrors("Image load and texture creation");
 }
 
 
 
-//void Display(HDC DeviceContext, HWND hWnd, width, height)
-//{
-//    // time setup
-//	DWORD currentTime = GetTickCount(); 
-//    float deltaTime = (currentTime - lastTime) * 0.001f;
-//    lastTime = currentTime;
-//
-//    SetupViewport(hWnd);
-//
-//    // render 
-//	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//
-//    // bind texture
-//    glBindTexture(GL_TEXTURE_2D, texture);
-//
-//    // activate shader
-//    glUseProgram(shaderProgram);
-//
-//    // transformations
-//    mat4 model, view, projection;
-//    mat4_identity(model);
-//    mat4_identity(view);
-//    mat4_identity(projection);
-//
-//    mat4_rotate(model, deltaTime, 0.5f, 1.0f, 0.0f);
-//    mat4_translate(view, 0.0f, 0.0f, -3.0f);
-//    mat4_perspective(projection, 3.1415926f/4.0f, width/height, 0.1f, 100.0f);
-//
-//    unsigned int modelLoc = glGetUniformLocation(ourShader.ID, "model");
-//    unsigned int viewLoc  = glGetUniformLocation(ourShader.ID, "view");
-//
-//    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
-//    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-//
-//    GLint loc = glGetUniformLocation(shaderProgram, "projection");
-//    glUniformMatrix4fv(loc, 1, GL_FALSE, &projection[0][0]);
-//
-//    // render box
-//    glBindVertexArray(VAO);
-//    glDrawArrays(GL_TRIANGLES, 0, 36);
-//
-//    SwapBuffers(DeviceContext);
-//
-//}
+void Display(HDC DeviceContext, HWND hWnd, int width, int height)
+{
+    // time setup
+	DWORD currentTime = GetTickCount(); 
+    float deltaTime = (currentTime - lastTime) * 0.001f;
+    lastTime = currentTime;
+
+    SetupViewport(hWnd);
+
+    // render 
+	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // bind texture
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    // activate shader
+    glUseProgram(shaderProgram);
+
+    // transformations
+    mat4 model, view, projection;
+    mat4_identity(model);
+    mat4_identity(view);
+    mat4_identity(projection);
+
+    mat4_rotate(model, Angle, 0.5f, 1.0f, 0.0f);
+    mat4_translate(view, 0.0f, 0.0f, -3.0f);
+    mat4_perspective(projection, 3.1415926f/4.0f, width/height, 0.1f, 100.0f);
+
+    unsigned int modelLoc = glGetUniformLocation(shaderProgram, "model");
+    unsigned int viewLoc  = glGetUniformLocation(shaderProgram, "view");
+
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+
+    GLint loc = glGetUniformLocation(shaderProgram, "projection");
+    glUniformMatrix4fv(loc, 1, GL_FALSE, &projection[0][0]);
+
+    // render box
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    SwapBuffers(DeviceContext);
+
+    Angle += 5.0f * deltaTime;
+    if (Angle == 360.0f) Angle = 0.0f;
+}
 
 static void DebugConsole()
 {
@@ -375,13 +386,6 @@ HDC SetupPixelFormat(HWND hWnd)
     return hWndDC;
 }
 
-void SetupViewport(HWND hWnd)
-{
-    int width, height;
-    getScreenDim_Win32(hWnd, &width, &height);
-    glViewport(0, 0, width, height);
-    MyCheckGLErrors("Viewport");
-}
 
 HGLRC InitOpenGL(HWND hWnd)
 {
@@ -431,7 +435,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
             int width, height;
             getScreenDim_Win32(hWnd, &width, &height);
-		    //Display(hdc, hWnd, width, height);
+		    Display(hdc, hWnd, width, height);
 			
             EndPaint(hWnd, &ps);
 			break;

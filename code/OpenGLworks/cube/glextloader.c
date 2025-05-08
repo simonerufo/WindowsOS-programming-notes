@@ -38,6 +38,9 @@ static PFNGLUNIFORM4FPROC glUniform4f = NULL;
 
 static void (*glDisableVertexAttribArray)(GLuint) = NULL;
 static void (*glBindAttribLocation)(GLuint, GLuint,GLchar*) = NULL;
+static void (*glGenerateMipmap)(GLenum) = NULL;
+// static void (*glUniform4fv)(GLint, GLsizei, GLfloat*) = NULL;
+static void (*glUniformMatrix4fv)(GLint, GLsizei, GLboolean, GLfloat*) = NULL;
 
 // TODO: there is something fishy with Windows gl.h header
 // Let's try to ship our own gl.h just like glext.h
@@ -86,6 +89,10 @@ static void load_gl_extensions(void)
 
     glDisableVertexAttribArray = (void (*)(GLuint)) wglGetProcAddress("glDisableVertexAttribArray");
     glBindAttribLocation = (void (*)  (GLuint, GLuint,GLchar*)) wglGetProcAddress("glBindAttribLocation");
+    glGenerateMipmap = (void (*)(GLenum)) wglGetProcAddress("glGenerateMipmap");
+    // glUniform4fv = (void (*)(GLint, GLsizei, GLfloat*)) wglGetProcAddress("glUniform4fv");
+    glUniformMatrix4fv = (void (*)(GLint, GLsizei, GLboolean, GLfloat*)) wglGetProcAddress("glUniformMatrix4fv");
+
 #if 0
     if (glfwExtensionSupported("GL_ARB_debug_output")) {
         fprintf(stderr, "INFO: ARB_debug_output is supported\n");
