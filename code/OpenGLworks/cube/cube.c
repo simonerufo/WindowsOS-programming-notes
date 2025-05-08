@@ -4,19 +4,65 @@
 #include <GL/glext.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "..\glextloader.c"
+#include "glextloader.c"
+#include "matrix.c"
 
 static BOOL Running = FALSE;
 static HGLRC OpenGLRC = NULL;
 static DWORD lastTime = 0;
 static float  Angle = 0.0f;
-static unsigned int VBO = NULL;
-static unsigned int VAO = NULL;
-/*
-	notes: initCube bindText compileAndLinkShaders are not used!!
+static unsigned int VBO = 0;
+static unsigned int VAO = 0;
+static unsigned int shaderProgram = 0;
+static unsigned int vertexShader = 0;
+static unsigned int fragmentShader = 0;
 
-*/
-const char* vertexShader = 
+static float vertices[] = 
+    {
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+             0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+    
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    
+             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+             0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+             0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+             0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+             0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+             0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    };
+
+const char* vertexShaderSource = 
 	"#version 330 core\n"
 	"layout (location = 0) in vec3 aPos;\n"
 	"layout (location = 1) in vec2 aTexCoord;\n"
@@ -30,7 +76,7 @@ const char* vertexShader =
 	"	TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
 	"}\0";
 
-const char* fragmentShader =
+const char* fragmentShaderSource =
 	"#version 330 core\n"
 	"out vec4 FragColor;\n"
 	"in vec2 TexCoord;\n"
@@ -41,6 +87,22 @@ const char* fragmentShader =
 	"}\0";
 
 
+void getScreenDim_Win32(HWND hWnd, int *width, int* height)
+{
+    RECT rect;
+    GetClientRect(hWnd, &rect);
+    *width = rect.right - rect.left;
+    *height = rect.bottom - rect.top;
+}
+
+void MyCheckGLErrors(const char *context)
+{
+    GLenum err;
+    while ( (err = glGetError()) != GL_NO_ERROR)
+    {
+        printf("[OpenGL Error] (%s): 0x%X\n", context, err);
+    }
+}
 
 GLuint LoadTextureFromBMP_Win32(const char* filename)
 {
@@ -154,20 +216,20 @@ void CompileAndLinkShaders()
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
-    CheckGLErrors("Compile vertex shader");
+    MyCheckGLErrors("Compile vertex shader");
 
 
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
-    CheckGLErrors("Compile fragment shader");
+    MyCheckGLErrors("Compile fragment shader");
 
 
     shaderProgram = glCreateProgram(); 
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
-    CheckGLErrors("shader program link");
+    MyCheckGLErrors("shader program link");
 
     glUseProgram(shaderProgram);
 
@@ -184,111 +246,93 @@ void BindVertexArrays()
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    CheckGLErrors("VBO Bind");
+    MyCheckGLErrors("VBO Bind");
 
     // position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    CheckGLErrors("Vertex Attribute position");
+    MyCheckGLErrors("Vertex Attribute position");
     // texture coord attribute
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    CheckGLErrors("Vertex Attribute texture");
+    MyCheckGLErrors("Vertex Attribute texture");
 }
 
 void LoadAndCreateTextures()
 {
-	unsigned int texture;
-    glGenTextures(1, &texture);
+    GLuint texture = LoadTextureFromBMP_Win32("dirt.bmp");
+    if (texture == 0) {
+        fprintf(stderr, "Failed to load texture!\n");
+        return;
+    }
+    // glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-    CheckGLErrors("Bind texture");
+    MyCheckGLErrors("Bind texture");
 
     // set the texture wrapping parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    CheckGLErrors("Texture wrapping");
+    MyCheckGLErrors("Texture wrapping");
 
     // set texture filtering parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    CheckGLErrors("Texture filtering");
+    MyCheckGLErrors("Texture filtering");
 
     // load image, create texture and generate mipmaps
-    GLuint data = LoadTextureFromBMP_Win32("dirt.bmp");
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    CheckGLErrors("Image load and texture creation");
+    //GLuint data = LoadTextureFromBMP_Win32("dirt.bmp");
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    //glGenerateMipmap(GL_TEXTURE_2D);
+    //MyCheckGLErrors("Image load and texture creation");
 }
 
-void initCubeVertex()
-{
-	float vertices[] = 
-	{
-        	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-        	 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-        	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-	
-        	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	
-        	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	
-        	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        	 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	
-        	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        	 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-        	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	
-        	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-}
 
-void Display(HDC DeviceContext, HWND hWnd)
-{
-	DWORD currentTime = GetTickCount(); 
-    float deltaTime = (currentTime - lastTime) * 0.001f;
-    lastTime = currentTime;
 
-    SetupViewport(hWnd);
-
-	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glUseProgram(shaderProgram);
-    
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-
-    SwapBuffers(DeviceContext);
-
-}
+//void Display(HDC DeviceContext, HWND hWnd, width, height)
+//{
+//    // time setup
+//	DWORD currentTime = GetTickCount(); 
+//    float deltaTime = (currentTime - lastTime) * 0.001f;
+//    lastTime = currentTime;
+//
+//    SetupViewport(hWnd);
+//
+//    // render 
+//	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//
+//    // bind texture
+//    glBindTexture(GL_TEXTURE_2D, texture);
+//
+//    // activate shader
+//    glUseProgram(shaderProgram);
+//
+//    // transformations
+//    mat4 model, view, projection;
+//    mat4_identity(model);
+//    mat4_identity(view);
+//    mat4_identity(projection);
+//
+//    mat4_rotate(model, deltaTime, 0.5f, 1.0f, 0.0f);
+//    mat4_translate(view, 0.0f, 0.0f, -3.0f);
+//    mat4_perspective(projection, 3.1415926f/4.0f, width/height, 0.1f, 100.0f);
+//
+//    unsigned int modelLoc = glGetUniformLocation(ourShader.ID, "model");
+//    unsigned int viewLoc  = glGetUniformLocation(ourShader.ID, "view");
+//
+//    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+//    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+//
+//    GLint loc = glGetUniformLocation(shaderProgram, "projection");
+//    glUniformMatrix4fv(loc, 1, GL_FALSE, &projection[0][0]);
+//
+//    // render box
+//    glBindVertexArray(VAO);
+//    glDrawArrays(GL_TRIANGLES, 0, 36);
+//
+//    SwapBuffers(DeviceContext);
+//
+//}
 
 static void DebugConsole()
 {
@@ -299,15 +343,6 @@ static void DebugConsole()
 	SetConsoleTitleA("Shader Debug Console");
 	
 	printf("Debug console initialized.\n");
-}
-
-void CheckGLErrors(const char* context) 
-{
-    GLenum err;
-    while ((err = glGetError()) != GL_NO_ERROR)
-    {
-        printf("[OpenGL Error] (%s): 0x%X\n", context, err);
-    }
 }
 
 HDC SetupPixelFormat(HWND hWnd)
@@ -342,12 +377,10 @@ HDC SetupPixelFormat(HWND hWnd)
 
 void SetupViewport(HWND hWnd)
 {
-    RECT rect;
-    GetClientRect(hWnd, &rect);
-    int width = rect.right - rect.left;
-    int height = rect.bottom - rect.top;
+    int width, height;
+    getScreenDim_Win32(hWnd, &width, &height);
     glViewport(0, 0, width, height);
-    CheckGLErrors("Viewport");
+    MyCheckGLErrors("Viewport");
 }
 
 HGLRC InitOpenGL(HWND hWnd)
@@ -372,6 +405,7 @@ HGLRC InitOpenGL(HWND hWnd)
 
 	ReleaseDC(hWnd,hWndDC);
 
+    glEnable(GL_DEPTH_TEST);
 
 	return OpenGLRC;
 } 
@@ -395,8 +429,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 			PAINTSTRUCT ps;
 			HDC hdc = BeginPaint(hWnd, &ps);
 
-			// DisplayBufferInWindow(hdc, width, height);
-		    // Display(hdc, hWnd);
+            int width, height;
+            getScreenDim_Win32(hWnd, &width, &height);
+		    //Display(hdc, hWnd, width, height);
 			
             EndPaint(hWnd, &ps);
 			break;
@@ -428,7 +463,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	RegisterClassEx(&wc);
 
 	hWnd = CreateWindowEx(
-		NULL,
+		0,
 		TEXT("Cube"),
 		TEXT("OpenGL Cube"),
 		WS_OVERLAPPEDWINDOW|WS_VISIBLE,
@@ -445,6 +480,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	DebugConsole();
 
 	OpenGLRC = InitOpenGL(hWnd);
+    CompileAndLinkShaders();
+    BindVertexArrays();
+    LoadAndCreateTextures();
 
 
 	if(OpenGLRC)
