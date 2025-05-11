@@ -63,6 +63,21 @@ static float vertices[] =
             -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
 
+static float cubePositions[] = 
+    {
+        // x    // y    // z
+         0.0f,  0.0f,   0.0f,
+         2.0f,  5.0f, -15.0f,
+        -1.5f, -2.2f,  -2.5f,
+        -3.8f, -2.0f, -12.3f,
+         2.4f, -0.4f,  -3.5f,
+        -1.7f,  3.0f,  -7.5f,
+         1.3f, -2.0f,  -2.5f,
+         1.5f,  2.0f,  -2.5f,
+         1.5f,  0.2f,  -1.5f,
+        -1.3f,  1.0f,  -1.5f
+    };
+
 const char* vertexShaderSource = 
 	"#version 330 core\n"
 	"layout (location = 0) in vec3 aPos;\n"
@@ -74,7 +89,7 @@ const char* vertexShaderSource =
 	"void main()\n"
 	"{\n"
 	"	gl_Position = projection * view * model * vec4(aPos, 1.0f);\n"
-	"	TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
+	"	TexCoord = vec2(aTexCoord.x, 1.0 - aTexCoord.y);\n"
 	"}\0";
 
 const char* fragmentShaderSource =
@@ -88,7 +103,7 @@ const char* fragmentShaderSource =
 	"}\0";
 
 
-void getScreenDim_Win32(HWND hWnd, int *width, int* height)
+void getScreenDim_Win32(HWND hWnd, int *width, int* height) // 32
 {
     RECT rect;
     GetClientRect(hWnd, &rect);
@@ -96,7 +111,7 @@ void getScreenDim_Win32(HWND hWnd, int *width, int* height)
     *height = rect.bottom - rect.top;
 }
 
-void CheckGLErrors(const char *context)
+void CheckGLErrors(const char *context) // 32
 {
     GLenum err;
     while ( (err = glGetError()) != GL_NO_ERROR)
@@ -105,7 +120,7 @@ void CheckGLErrors(const char *context)
     }
 }
 
-GLuint LoadTextureFromBMP_Win32(const char* filename)
+GLuint LoadTextureFromBMP_Win32(const char* filename) // 32
 {
     HBITMAP    hBitmap = NULL;
     BITMAP     bmp;
@@ -267,7 +282,7 @@ void BindVertexArrays()
     CheckGLErrors("Vertex Attribute texture");
 }
 
-void LoadAndCreateTextures()
+void LoadAndCreateTextures() // 32
 {
     texture = LoadTextureFromBMP_Win32("dirt.bmp");
     if (texture == 0) {
@@ -287,12 +302,6 @@ void LoadAndCreateTextures()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     CheckGLErrors("Texture filtering");
-
-    // load image, create texture and generate mipmaps
-    //GLuint data = LoadTextureFromBMP_Win32("dirt.bmp");
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    //glGenerateMipmap(GL_TEXTURE_2D);
-    //CheckGLErrors("Image load and texture creation");
 }
 
 
@@ -323,8 +332,8 @@ void Display(HDC DeviceContext, HWND hWnd, int width, int height)
     mat4_identity(projection);
 
     mat4_rotate(model, Angle, 1.0f, 1.0f, 0.0f);
-    mat4_translate(view, 0.0f, 0.0f, -5.0f);
-    mat4_perspective(projection, 3.1415926f/4.0f,(float)width/(float)height, 0.1f, 100.0f);
+    mat4_translate(view, 0.0f, 0.0f, -3.0f);
+    mat4_perspective(projection, 3.1415926f/4.0f, (float)width/(float)height, 0.1f, 100.0f);
 
     unsigned int modelLoc = glGetUniformLocation(shaderProgram, "model");
     unsigned int viewLoc  = glGetUniformLocation(shaderProgram, "view");
@@ -345,18 +354,74 @@ void Display(HDC DeviceContext, HWND hWnd, int width, int height)
     if (Angle >= 360.0f) Angle = 0.0f;
 }
 
-static void DebugConsole()
+void DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
+{
+    // 1) Time setup
+    DWORD currentTime = GetTickCount(); 
+    float deltaTime = (currentTime - lastTime) * 0.001f;
+    lastTime = currentTime;
+
+    SetupViewport(hWnd);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUseProgram(shaderProgram);
+
+    mat4 view, projection;
+    mat4_identity(view);
+    mat4_translate(view, 0.0f, 0.0f, -3.0f);
+    mat4_identity(projection);
+    mat4_perspective(projection, 3.1415926f/4.0f, (float)width/height, 0.1f, 100.0f);
+
+    unsigned int viewLoc       = glGetUniformLocation(shaderProgram, "view");
+    unsigned int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+
+    glUniformMatrix4fv(viewLoc,       1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, &projection[0][0]);
+
+    glBindVertexArray(VAO);
+    for (unsigned int i = 0; i < 10; ++i)
+    {
+        float x = cubePositions[i*3 + 0];
+        float y = cubePositions[i*3 + 1];
+        float z = cubePositions[i*3 + 2];
+        
+        
+        mat4 model;
+        mat4_identity(model);
+        mat4_translate(model, x, y, z);
+
+        // mat4_rotate_inplace(model, ang * (3.1415926f / 180.0f), 1.0f, 0.3f, 0.5f);
+        // mat4_rotate_inplace(model, Angle * (3.1415926f / 180.0f), 1.0f, 0.3f, 0.5f);
+        // mat4_rotate_inplace(model, Angle * (3.1415926f / 180.0f), 1.0f, 1.0f, 0.0f);
+        mat4_rotate_inplace(model, Angle, 1.0f, 1.0f, 0.0f);
+        printf("Angle %f\n",Angle * (3.1415926f / 180.0f));
+        unsigned int modelLoc      = glGetUniformLocation(shaderProgram, "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+        
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        Angle += 0.5f * deltaTime;
+        if(Angle >= 360.0f) Angle -= 360.0f;
+    }
+
+    SwapBuffers(DeviceContext);
+
+    
+}
+
+static void DebugConsole() // 32
 {
 	AllocConsole();
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stdout);
 	freopen_s(&fp, "CONOUT$", "w", stderr);
-	SetConsoleTitleA("Shader Debug Console");
+	SetConsoleTitleA("Debug Console");
 	
 	printf("Debug console initialized.\n");
 }
 
-HDC SetupPixelFormat(HWND hWnd)
+HDC SetupPixelFormat(HWND hWnd) // 32
 {
 	HDC hWndDC = GetDC(hWnd);
 
@@ -387,7 +452,7 @@ HDC SetupPixelFormat(HWND hWnd)
 }
 
 
-HGLRC InitOpenGL(HWND hWnd)
+HGLRC InitOpenGL(HWND hWnd) // 32
 {
 	HDC hWndDC = SetupPixelFormat(hWnd);
     // Create an OpenGL rendering context using the device context
@@ -414,7 +479,7 @@ HGLRC InitOpenGL(HWND hWnd)
 	return OpenGLRC;
 } 
 
-void DestroyOpenGL(HGLRC OpenGLRC)
+void DestroyOpenGL(HGLRC OpenGLRC) // 32
 {
     if (OpenGLRC)
     {
@@ -435,8 +500,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
             int width, height;
             getScreenDim_Win32(hWnd, &width, &height);
-		    Display(hdc, hWnd, width, height);
-			
+		    // Display(hdc, hWnd, width, height);
+			DisplayMultiple(hdc, hWnd, width, height);
             EndPaint(hWnd, &ps);
 			break;
 		}
@@ -445,6 +510,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	return DefWindowProc(hWnd, iMsg, wParam, lParam);	
 }
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
 	MSG msg;

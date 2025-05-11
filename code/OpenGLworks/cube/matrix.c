@@ -38,6 +38,7 @@ static void mat4_translate(mat4 M, float tx, float ty, float tz)
     M[3][2] = tz;
 }
 
+
 /* Build a rotation matrix around axis (x,y,z) by angle radians */
 static void mat4_rotate(mat4 M, float angle, float x, float y, float z) 
 {
@@ -66,6 +67,46 @@ static void mat4_rotate(mat4 M, float angle, float x, float y, float z)
     M[3][0]= M[3][1]= M[3][2]= 0.0f;
     M[3][3]= 1.0f;
 }
+
+
+static void 
+mat4_rotate_inplace(mat4 M, float angle, float x, float y, float z) 
+{
+    float c = cosf(angle);
+    float s = sinf(angle);
+    float len = sqrtf(x*x + y*y + z*z);
+    if (len == 0.0f) return;
+    x /= len; y /= len; z /= len;
+    float nc = 1.0f - c;
+
+    mat4 R;
+    
+    R[0][0] = x*x*nc + c;     
+    R[0][1] = y*x*nc + z*s; 
+    R[0][2] = x*z*nc - y*s; 
+    R[0][3] = 0.0f;
+
+    R[1][0] = x*y*nc - z*s;   
+    R[1][1] = y*y*nc + c;   
+    R[1][2] = y*z*nc + x*s; 
+    R[1][3] = 0.0f;
+
+    R[2][0] = x*z*nc + y*s;   
+    R[2][1] = y*z*nc - x*s; 
+    R[2][2] = z*z*nc + c;   
+    R[2][3] = 0.0f;
+
+    R[3][0] = 0.0f;           
+    R[3][1] = 0.0f;         
+    R[3][2] = 0.0f;         
+    R[3][3] = 1.0f;
+
+    mat4 result;
+    mat4_mul(M, R, result);
+
+    memcpy(M, result, sizeof(mat4));
+}
+
 
 /* Build a perspective projection matrix:
    fovY in radians, aspect = width/height, near>0, far>near */
