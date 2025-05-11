@@ -107,6 +107,22 @@ mat4_rotate_inplace(mat4 M, float angle, float x, float y, float z)
     memcpy(M, result, sizeof(mat4));
 }
 
+static void 
+mat4_translate_inplace(mat4 M, float tx, float ty, float tz) 
+{
+    mat4 R;
+    mat4_identity(R);
+
+    R[3][0] = tx;
+    R[3][1] = ty;
+    R[3][2] = tz;
+
+    mat4 result;
+    mat4_mul(M, R, result);
+
+    memcpy(M, result, sizeof(mat4));
+}
+
 
 /* Build a perspective projection matrix:
    fovY in radians, aspect = width/height, near>0, far>near */

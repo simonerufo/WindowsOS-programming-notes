@@ -379,6 +379,9 @@ void DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
 
     glUniformMatrix4fv(viewLoc,       1, GL_FALSE, &view[0][0]);
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, &projection[0][0]);
+    
+    unsigned int modelLoc      = glGetUniformLocation(shaderProgram, "model");
+    float frameAngle = Angle;
 
     glBindVertexArray(VAO);
     for (unsigned int i = 0; i < 10; ++i)
@@ -390,24 +393,24 @@ void DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
         
         mat4 model;
         mat4_identity(model);
-        mat4_translate(model, x, y, z);
 
         // mat4_rotate_inplace(model, ang * (3.1415926f / 180.0f), 1.0f, 0.3f, 0.5f);
         // mat4_rotate_inplace(model, Angle * (3.1415926f / 180.0f), 1.0f, 0.3f, 0.5f);
         // mat4_rotate_inplace(model, Angle * (3.1415926f / 180.0f), 1.0f, 1.0f, 0.0f);
-        mat4_rotate_inplace(model, Angle, 1.0f, 1.0f, 0.0f);
-        printf("Angle %f\n",Angle * (3.1415926f / 180.0f));
-        unsigned int modelLoc      = glGetUniformLocation(shaderProgram, "model");
+        float thisAngle = frameAngle + i * 20.0f;
+        mat4_rotate_inplace(model, thisAngle * (3.1415926f/180.0f), 1.0f, 1.0f, 0.0f);
+        //printf("Angle %f\n",Angle * (3.1415926f / 180.0f));
+        mat4_translate_inplace(model, x, y, z);
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
         
         glDrawArrays(GL_TRIANGLES, 0, 36);
-        Angle += 0.5f * deltaTime;
-        if(Angle >= 360.0f) Angle -= 360.0f;
     }
 
+    Angle += 10.0f * deltaTime;
+    if(Angle >= 360.0f) Angle -= 360.0f;
+    
     SwapBuffers(DeviceContext);
 
-    
 }
 
 static void DebugConsole() // 32
