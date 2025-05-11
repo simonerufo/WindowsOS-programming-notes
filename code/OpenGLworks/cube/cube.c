@@ -299,7 +299,7 @@ void LoadAndCreateTextures() // 32
     CheckGLErrors("Texture wrapping");
 
     // set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     CheckGLErrors("Texture filtering");
 }
@@ -356,7 +356,6 @@ void Display(HDC DeviceContext, HWND hWnd, int width, int height)
 
 void DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
 {
-    // 1) Time setup
     DWORD currentTime = GetTickCount(); 
     float deltaTime = (currentTime - lastTime) * 0.001f;
     lastTime = currentTime;
@@ -386,21 +385,18 @@ void DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
     glBindVertexArray(VAO);
     for (unsigned int i = 0; i < 10; ++i)
     {
-        float x = cubePositions[i*3 + 0];
-        float y = cubePositions[i*3 + 1];
-        float z = cubePositions[i*3 + 2];
+        float x = cubePositions[i * 3 + 0];
+        float y = cubePositions[i * 3 + 1];
+        float z = cubePositions[i * 3 + 2];
         
         
         mat4 model;
         mat4_identity(model);
 
-        // mat4_rotate_inplace(model, ang * (3.1415926f / 180.0f), 1.0f, 0.3f, 0.5f);
-        // mat4_rotate_inplace(model, Angle * (3.1415926f / 180.0f), 1.0f, 0.3f, 0.5f);
-        // mat4_rotate_inplace(model, Angle * (3.1415926f / 180.0f), 1.0f, 1.0f, 0.0f);
         float thisAngle = frameAngle + i * 20.0f;
-        mat4_rotate_inplace(model, thisAngle * (3.1415926f/180.0f), 1.0f, 1.0f, 0.0f);
-        //printf("Angle %f\n",Angle * (3.1415926f / 180.0f));
+        mat4_rotate_inplace(model, thisAngle * (3.1415926f/180.0f), 1.0f, 0.3f, 0.1f);
         mat4_translate_inplace(model, x, y, z);
+
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
         
         glDrawArrays(GL_TRIANGLES, 0, 36);
