@@ -7,22 +7,24 @@
 #include "glextloader.c"
 #include "matrix.c"
 
-static BOOL Running = FALSE;
-static BOOL firstMouse = TRUE;
-static HGLRC OpenGLRC = NULL;
-static DWORD lastTime = 0;
-static float deltaTime = 0;
-static float  Angle = 0.0f;
-static float yaw = -90.0f;
-static float pitch = 0;
-static unsigned int VBO = 0;
-static unsigned int VAO = 0;
-static unsigned int shaderProgram = 0;
-static unsigned int vertexShader = 0;
-static unsigned int fragmentShader = 0;
-static GLuint texture = 0;
+BOOL Running = FALSE;
+BOOL firstMouse = TRUE;
+HGLRC OpenGLRC = NULL;
+DWORD lastTime = 0;
+float deltaTime = 0;
+float  Angle = 0.0f;
+float yaw = -90.0f;
+float pitch = 0;
+float lastX = 800.0f / 2.0;
+float lastY = 600.0f / 2.0;
+unsigned int VBO = 0;
+unsigned int VAO = 0;
+unsigned int shaderProgram = 0;
+unsigned int vertexShader = 0;
+unsigned int fragmentShader = 0;
+GLuint texture = 0;
 
-static float vertices[] = 
+float vertices[] = 
     {
             -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
              0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -66,7 +68,7 @@ static float vertices[] =
             -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
             -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
-static float cubePositions[] = 
+float cubePositions[] = 
     {
         // x    // y    // z
          0.0f,  0.0f,   0.0f,
@@ -80,19 +82,19 @@ static float cubePositions[] =
          1.5f,  0.2f,  -1.5f,
         -1.3f,  1.0f,  -1.5f
     };
-static float cameraPosition[] = 
+float cameraPosition[] = 
     {
         0.0f, 0.0f, 3.0f
     };
-static float cameraFront[] = 
+float cameraFront[] = 
     {
         0.0f, 0.0f, -1.0f
     };
-static float cameraUp[] = 
+float cameraUp[] = 
     {
         0.0f, 1.0f, 0.0f
     };
-static float direction[] = 
+float direction[] = 
     {
         0.0f, 0.0f, 0.0f
     };
@@ -122,7 +124,8 @@ const char* fragmentShaderSource =
 	"}\0";
 
 
-void getScreenDim_Win32(HWND hWnd, int *width, int* height) // 32
+void 
+getScreenDim_Win32(HWND hWnd, int *width, int* height) // 32
 {
     RECT rect;
     GetClientRect(hWnd, &rect);
@@ -130,7 +133,8 @@ void getScreenDim_Win32(HWND hWnd, int *width, int* height) // 32
     *height = rect.bottom - rect.top;
 }
 
-void CheckGLErrors(const char *context) // 32
+void 
+CheckGLErrors(const char *context) // 32
 {
     GLenum err;
     while ( (err = glGetError()) != GL_NO_ERROR)
@@ -139,7 +143,8 @@ void CheckGLErrors(const char *context) // 32
     }
 }
 
-GLuint LoadTextureFromBMP_Win32(const char* filename) // 32
+GLuint 
+LoadTextureFromBMP_Win32(const char* filename) // 32
 {
     HBITMAP    hBitmap = NULL;
     BITMAP     bmp;
@@ -246,7 +251,8 @@ GLuint LoadTextureFromBMP_Win32(const char* filename) // 32
     return texID;
 }
 
-void SetupViewport(HWND hWnd)
+void 
+SetupViewport(HWND hWnd)
 {
     int width, height;
     getScreenDim_Win32(hWnd, &width, &height);
@@ -254,7 +260,8 @@ void SetupViewport(HWND hWnd)
     CheckGLErrors("Viewport");
 }
 
-void CompileAndLinkShaders()
+void 
+CompileAndLinkShaders()
 {
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
@@ -280,7 +287,8 @@ void CompileAndLinkShaders()
     glDeleteShader(fragmentShader);  
 }
 
-void BindVertexArrays()
+void 
+BindVertexArrays()
 {
 	glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -301,7 +309,8 @@ void BindVertexArrays()
     CheckGLErrors("Vertex Attribute texture");
 }
 
-void LoadAndCreateTextures() // 32
+void 
+LoadAndCreateTextures() // 32
 {
     texture = LoadTextureFromBMP_Win32("dirt.bmp");
     if (texture == 0) {
@@ -325,7 +334,8 @@ void LoadAndCreateTextures() // 32
 
 
 
-void Display(HDC DeviceContext, HWND hWnd, int width, int height)
+void 
+Display(HDC DeviceContext, HWND hWnd, int width, int height)
 {
     // time setup
 	DWORD currentTime = GetTickCount(); 
@@ -373,7 +383,8 @@ void Display(HDC DeviceContext, HWND hWnd, int width, int height)
     if (Angle >= 360.0f) Angle = 0.0f;
 }
 
-void DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
+void 
+DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
 {
     DWORD currentTime = GetTickCount(); 
     deltaTime = (currentTime - lastTime) * 0.001f;
@@ -428,7 +439,8 @@ void DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
 
 }
 
-void DisplayMultipleCamera(HDC DeviceContext, HWND hWnd, int width, int height)
+void 
+DisplayMultipleCamera(HDC DeviceContext, HWND hWnd, int width, int height)
 {
     DWORD currentTime = GetTickCount(); 
     deltaTime = (currentTime - lastTime) * 0.001f;
@@ -486,7 +498,8 @@ void DisplayMultipleCamera(HDC DeviceContext, HWND hWnd, int width, int height)
 
 }
 
-static void DebugConsole() // 32
+void 
+DebugConsole() // 32
 {
 	AllocConsole();
 	FILE* fp;
@@ -497,7 +510,8 @@ static void DebugConsole() // 32
 	printf("Debug console initialized.\n");
 }
 
-HDC SetupPixelFormat(HWND hWnd) // 32
+HDC 
+SetupPixelFormat(HWND hWnd) // 32
 {
 	HDC hWndDC = GetDC(hWnd);
 
@@ -528,7 +542,8 @@ HDC SetupPixelFormat(HWND hWnd) // 32
 }
 
 
-HGLRC InitOpenGL(HWND hWnd) // 32
+HGLRC 
+InitOpenGL(HWND hWnd) // 32
 {
 	HDC hWndDC = SetupPixelFormat(hWnd);
     // Create an OpenGL rendering context using the device context
@@ -555,7 +570,8 @@ HGLRC InitOpenGL(HWND hWnd) // 32
 	return OpenGLRC;
 } 
 
-void DestroyOpenGL(HGLRC OpenGLRC) // 32
+void 
+DestroyOpenGL(HGLRC OpenGLRC) // 32
 {
     if (OpenGLRC)
     {
@@ -564,7 +580,8 @@ void DestroyOpenGL(HGLRC OpenGLRC) // 32
     }
 }
 
-void cameraMovement(WPARAM wParam)
+void 
+cameraMovement(WPARAM wParam)
 {
     float cameraSpeed = 5.0f * deltaTime;
     // WM_KEYDOWN: 0x57 'W' 
@@ -616,10 +633,10 @@ void cameraMovement(WPARAM wParam)
     }
 }
 
-void mouseMovement(float x, float y)
+
+void 
+mouseMovement(float x, float y)
 {
-    float lastX, lastY;
-    
     if (firstMouse)
     {
         lastX = x;
@@ -633,7 +650,7 @@ void mouseMovement(float x, float y)
     lastX = x;
     lastY = y;
 
-    const float sensitivity = 0.00000000001f;
+    const float sensitivity = 0.3f;
 
     xoffset *= sensitivity;
     yoffset *= sensitivity;
@@ -657,7 +674,26 @@ void mouseMovement(float x, float y)
     cameraFront[2] = direction[2]; 
 }
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
+void 
+LockCursorToWindow(HWND hwnd) 
+{
+    RECT rect;
+    GetClientRect(hwnd, &rect);           
+    POINT ul = { rect.left, rect.top };
+    POINT lr = { rect.right, rect.bottom };
+    ClientToScreen(hwnd, &ul);            
+    ClientToScreen(hwnd, &lr);
+    rect.left   = ul.x;
+    rect.top    = ul.y;
+    rect.right  = lr.x;
+    rect.bottom = lr.y;
+
+    ClipCursor(&rect);   
+    ShowCursor(FALSE);                
+}
+
+LRESULT CALLBACK 
+WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(iMsg) 
 	{
@@ -678,7 +714,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
         case WM_KEYDOWN:
             {
+                if(wParam == VK_ESCAPE)
+                    PostMessage(hWnd, WM_CLOSE, 0, 0);
+
                 cameraMovement(wParam);
+                
                 break;
             }
 
@@ -688,16 +728,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
             int y = GET_Y_LPARAM(lParam);
 
             mouseMovement(x, y);
-            printf("x:%d, y:%d\n", x, y);
             break;
         }
+
+        case WM_DESTROY:
+            {
+                Running = FALSE;
+                PostQuitMessage(0);
+            }
 
 	}
 
 	return DefWindowProc(hWnd, iMsg, wParam, lParam);	
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
+int WINAPI 
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
 	MSG msg;
 	HWND hWnd;
@@ -739,7 +785,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     CompileAndLinkShaders();
     BindVertexArrays();
     LoadAndCreateTextures();
-
+    LockCursorToWindow(hWnd);
 
 	if(OpenGLRC)
 	{
