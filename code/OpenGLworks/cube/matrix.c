@@ -206,3 +206,8 @@ void mat4_lookAt(mat4 out,
     out[3][2] =  dot(fx, fy, fz, eyeX, eyeY, eyeZ);
     out[3][3] = 1.0f;
 }
+
+float radians(float degrees)
+{
+    return degrees * (3.1415926f/180.0f);
+}

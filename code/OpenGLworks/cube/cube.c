@@ -8,10 +8,13 @@
 #include "matrix.c"
 
 static BOOL Running = FALSE;
+static BOOL firstMouse = TRUE;
 static HGLRC OpenGLRC = NULL;
 static DWORD lastTime = 0;
 static float deltaTime = 0;
 static float  Angle = 0.0f;
+static float yaw = -90.0f;
+static float pitch = 0;
 static unsigned int VBO = 0;
 static unsigned int VAO = 0;
 static unsigned int shaderProgram = 0;
@@ -88,6 +91,10 @@ static float cameraFront[] =
 static float cameraUp[] = 
     {
         0.0f, 1.0f, 0.0f
+    };
+static float direction[] = 
+    {
+        0.0f, 0.0f, 0.0f
     };
 
 const char* vertexShaderSource = 
@@ -406,7 +413,7 @@ void DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
         mat4_identity(model);
 
         float thisAngle = frameAngle + i * 20.0f;
-        mat4_rotate_inplace(model, thisAngle * (3.1415926f/180.0f), 1.0f, 0.3f, 0.1f);
+        mat4_rotate_inplace(model, radians(thisAngle), 1.0f, 0.3f, 0.1f);
         mat4_translate_inplace(model, x, y, z);
 
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
@@ -464,7 +471,7 @@ void DisplayMultipleCamera(HDC DeviceContext, HWND hWnd, int width, int height)
         mat4_identity(model);
 
         float thisAngle = frameAngle + i * 20.0f;
-        mat4_rotate_inplace(model, thisAngle * (3.1415926f/180.0f), 1.0f, 0.3f, 0.1f);
+        mat4_rotate_inplace(model, radians(thisAngle), 1.0f, 0.3f, 0.1f);
         mat4_translate_inplace(model, x, y, z);
 
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
@@ -609,6 +616,47 @@ void cameraMovement(WPARAM wParam)
     }
 }
 
+void mouseMovement(float x, float y)
+{
+    float lastX, lastY;
+    
+    if (firstMouse)
+    {
+        lastX = x;
+        lastY = y;
+        firstMouse = FALSE;
+    }
+
+    float xoffset = x - lastX;
+    float yoffset = lastY - y;
+    
+    lastX = x;
+    lastY = y;
+
+    const float sensitivity = 0.00000000001f;
+
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw   += xoffset;
+    pitch += yoffset;
+    
+    if(pitch > 89.0f)
+      pitch =  89.0f;
+    if(pitch < -89.0f)
+      pitch = -89.0f;
+
+    direction[0] = cos(radians(yaw) * cos(radians(pitch)));
+    direction[1] = sin(radians(pitch));
+    direction[2] = sin(radians(yaw)) * cos(radians(pitch));
+    
+    normalize(&direction[0], &direction[1], &direction[2]);
+
+    cameraFront[0] = direction[0];
+    cameraFront[1] = direction[1];
+    cameraFront[2] = direction[2]; 
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(iMsg) 
@@ -633,6 +681,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
                 cameraMovement(wParam);
                 break;
             }
+
+        case WM_MOUSEMOVE: 
+        {
+            int x = GET_X_LPARAM(lParam);
+            int y = GET_Y_LPARAM(lParam);
+
+            mouseMovement(x, y);
+            printf("x:%d, y:%d\n", x, y);
+            break;
+        }
 
 	}
 
