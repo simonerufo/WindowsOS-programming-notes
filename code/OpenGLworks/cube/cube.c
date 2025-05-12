@@ -713,14 +713,14 @@ WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		}
 
         case WM_KEYDOWN:
-            {
-                if(wParam == VK_ESCAPE)
-                    PostMessage(hWnd, WM_CLOSE, 0, 0);
+        {
+            if(wParam == VK_ESCAPE)
+                PostMessage(hWnd, WM_CLOSE, 0, 0);
 
-                cameraMovement(wParam);
+            cameraMovement(wParam);
                 
-                break;
-            }
+            break;
+        }
 
         case WM_MOUSEMOVE: 
         {
@@ -732,10 +732,10 @@ WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
         }
 
         case WM_DESTROY:
-            {
-                Running = FALSE;
-                PostQuitMessage(0);
-            }
+        {
+            Running = FALSE;
+            PostQuitMessage(0);
+        }
 
 	}
 
