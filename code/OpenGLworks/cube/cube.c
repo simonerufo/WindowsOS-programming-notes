@@ -10,6 +10,7 @@
 static BOOL Running = FALSE;
 static HGLRC OpenGLRC = NULL;
 static DWORD lastTime = 0;
+static float deltaTime = 0;
 static float  Angle = 0.0f;
 static unsigned int VBO = 0;
 static unsigned int VAO = 0;
@@ -62,7 +63,6 @@ static float vertices[] =
             -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
             -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
-
 static float cubePositions[] = 
     {
         // x    // y    // z
@@ -76,6 +76,18 @@ static float cubePositions[] =
          1.5f,  2.0f,  -2.5f,
          1.5f,  0.2f,  -1.5f,
         -1.3f,  1.0f,  -1.5f
+    };
+static float cameraPosition[] = 
+    {
+        0.0f, 0.0f, 3.0f
+    };
+static float cameraFront[] = 
+    {
+        0.0f, 0.0f, -1.0f
+    };
+static float cameraUp[] = 
+    {
+        0.0f, 1.0f, 0.0f
     };
 
 const char* vertexShaderSource = 
@@ -310,7 +322,7 @@ void Display(HDC DeviceContext, HWND hWnd, int width, int height)
 {
     // time setup
 	DWORD currentTime = GetTickCount(); 
-    float deltaTime = (currentTime - lastTime) * 0.001f;
+    deltaTime = (currentTime - lastTime) * 0.001f;
     lastTime = currentTime;
 
     SetupViewport(hWnd);
@@ -357,7 +369,7 @@ void Display(HDC DeviceContext, HWND hWnd, int width, int height)
 void DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
 {
     DWORD currentTime = GetTickCount(); 
-    float deltaTime = (currentTime - lastTime) * 0.001f;
+    deltaTime = (currentTime - lastTime) * 0.001f;
     lastTime = currentTime;
 
     SetupViewport(hWnd);
@@ -371,6 +383,64 @@ void DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
     mat4_identity(view);
     mat4_translate(view, 0.0f, 0.0f, -3.0f);
     mat4_identity(projection);
+    mat4_perspective(projection, 3.1415926f/4.0f, (float)width/height, 0.1f, 100.0f);
+
+    unsigned int viewLoc       = glGetUniformLocation(shaderProgram, "view");
+    unsigned int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+
+    glUniformMatrix4fv(viewLoc,       1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, &projection[0][0]);
+    
+    unsigned int modelLoc      = glGetUniformLocation(shaderProgram, "model");
+    float frameAngle = Angle;
+
+    glBindVertexArray(VAO);
+    for (unsigned int i = 0; i < 10; ++i)
+    {
+        float x = cubePositions[i * 3 + 0];
+        float y = cubePositions[i * 3 + 1];
+        float z = cubePositions[i * 3 + 2];
+        
+        
+        mat4 model;
+        mat4_identity(model);
+
+        float thisAngle = frameAngle + i * 20.0f;
+        mat4_rotate_inplace(model, thisAngle * (3.1415926f/180.0f), 1.0f, 0.3f, 0.1f);
+        mat4_translate_inplace(model, x, y, z);
+
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+        
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+
+    Angle += 10.0f * deltaTime;
+    if(Angle >= 360.0f) Angle -= 360.0f;
+    
+    SwapBuffers(DeviceContext);
+
+}
+
+void DisplayMultipleCamera(HDC DeviceContext, HWND hWnd, int width, int height)
+{
+    DWORD currentTime = GetTickCount(); 
+    deltaTime = (currentTime - lastTime) * 0.001f;
+    lastTime = currentTime;
+
+    SetupViewport(hWnd);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUseProgram(shaderProgram);
+
+    mat4 view;
+    mat4_lookAt(view,
+                cameraPosition[0], cameraPosition[1], cameraPosition[2],
+                cameraPosition[0] + cameraFront[0], cameraPosition[1] + cameraFront[1], cameraPosition[2] + cameraFront[2],
+                cameraUp[0], cameraUp[1], cameraUp[2]); 
+
+    mat4 projection;
     mat4_perspective(projection, 3.1415926f/4.0f, (float)width/height, 0.1f, 100.0f);
 
     unsigned int viewLoc       = glGetUniformLocation(shaderProgram, "view");
@@ -487,6 +557,58 @@ void DestroyOpenGL(HGLRC OpenGLRC) // 32
     }
 }
 
+void cameraMovement(WPARAM wParam)
+{
+    float cameraSpeed = 5.0f * deltaTime;
+    // WM_KEYDOWN: 0x57 'W' 
+    if(wParam == 0x57)
+    {
+        cameraPosition[0] += cameraSpeed * cameraFront[0];
+        cameraPosition[1] += cameraSpeed * cameraFront[1];
+        cameraPosition[2] += cameraSpeed * cameraFront[2];
+    }
+    // WM_KEYDOWN: 0x41 'A'
+    if(wParam == 0x41)
+    {
+        float sideX, sideY, sideZ;
+        
+        cross(
+                cameraFront[0], cameraFront[1], cameraFront[2],
+                   cameraUp[0],    cameraUp[1],    cameraUp[2],
+                        &sideX,         &sideY,         &sideZ
+             );
+        
+        normalize(&sideX, &sideY, &sideZ);
+        
+        cameraPosition[0] -= sideX * cameraSpeed;
+        cameraPosition[1] -= sideY * cameraSpeed;
+        cameraPosition[2] -= sideZ * cameraSpeed;
+    }
+    // WM_KEYDOWN: 0x44 'D' 
+    if(wParam == 0x44)
+    {
+        float sideX, sideY, sideZ;
+        cross(
+                cameraFront[0], cameraFront[1], cameraFront[2],
+                   cameraUp[0],    cameraUp[1],    cameraUp[2],
+                        &sideX,         &sideY,         &sideZ
+             );
+        
+        normalize(&sideX, &sideY, &sideZ);
+        
+        cameraPosition[0] += sideX * cameraSpeed;
+        cameraPosition[1] += sideY * cameraSpeed;
+        cameraPosition[2] += sideZ * cameraSpeed;
+    }
+    // WM_KEYDOWN: 0x53 'S'
+     if(wParam == 0x53)
+    {
+        cameraPosition[0] -= cameraSpeed * cameraFront[0];
+        cameraPosition[1] -= cameraSpeed * cameraFront[1];
+        cameraPosition[2] -= cameraSpeed * cameraFront[2];
+    }
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch(iMsg) 
@@ -500,10 +622,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
             int width, height;
             getScreenDim_Win32(hWnd, &width, &height);
 		    // Display(hdc, hWnd, width, height);
-			DisplayMultiple(hdc, hWnd, width, height);
+			// DisplayMultiple(hdc, hWnd, width, height);
+            DisplayMultipleCamera(hdc, hWnd, width, height);
             EndPaint(hWnd, &ps);
 			break;
 		}
+
+        case WM_KEYDOWN:
+            {
+                cameraMovement(wParam);
+                break;
+            }
 
 	}
 

@@ -139,3 +139,70 @@ mat4_perspective(mat4 M,float fovY,float aspect,float near_,float far_)
     M[3][2] = (2.0f*far_*near_)/(near_-far_);
     M[3][3] = 0.0f;
 }
+
+
+void normalize(float* x, float* y, float* z) 
+{
+    float len = sqrtf((*x)*(*x) + (*y)*(*y) + (*z)*(*z));
+    if (len > 0.0f) 
+    {
+        *x /= len;
+        *y /= len;
+        *z /= len;
+    }
+}
+
+
+void cross(float ax, float ay, float az,
+           float bx, float by, float bz,
+           float* rx, float* ry, float* rz) 
+{
+    *rx = ay * bz - az * by;
+    *ry = az * bx - ax * bz;
+    *rz = ax * by - ay * bx;
+}
+
+
+float dot(float ax, float ay, float az, float bx, float by, float bz) 
+{
+    return ax * bx + ay * by + az * bz;
+}
+
+/*
+    Camera lookAt
+*/
+void mat4_lookAt(mat4 out,
+                 float eyeX, float eyeY, float eyeZ,
+                 float centerX, float centerY, float centerZ,
+                 float upX, float upY, float upZ) 
+{
+    float fx = centerX - eyeX;
+    float fy = centerY - eyeY;
+    float fz = centerZ - eyeZ;
+    normalize(&fx, &fy, &fz);
+
+    float sx, sy, sz;
+    cross(fx, fy, fz, upX, upY, upZ, &sx, &sy, &sz);
+    normalize(&sx, &sy, &sz);
+
+    float ux, uy, uz;
+    cross(sx, sy, sz, fx, fy, fz, &ux, &uy, &uz);
+
+    memset(out, 0, sizeof(mat4));
+    out[0][0] = sx;
+    out[1][0] = sy;
+    out[2][0] = sz;
+
+    out[0][1] = ux;
+    out[1][1] = uy;
+    out[2][1] = uz;
+
+    out[0][2] = -fx;
+    out[1][2] = -fy;
+    out[2][2] = -fz;
+
+    out[3][0] = -dot(sx, sy, sz, eyeX, eyeY, eyeZ);
+    out[3][1] = -dot(ux, uy, uz, eyeX, eyeY, eyeZ);
+    out[3][2] =  dot(fx, fy, fz, eyeX, eyeY, eyeZ);
+    out[3][3] = 1.0f;
+}
