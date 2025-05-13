@@ -118,8 +118,12 @@ const char* fragmentShaderSource =
 	"out vec4 FragColor;\n"
 	"in vec2 TexCoord;\n"
 	"uniform sampler2D texture1;\n"
+    "uniform bool isRoomCube;\n"
 	"void main()\n"
 	"{\n"
+    "if(isRoomCube)\n"
+    "   FragColor = vec4(0.2, 0.2, 0.25, 1.0);\n"
+    "else\n"
 	"	FragColor = texture(texture1, TexCoord);\n"
 	"}\0";
 
@@ -362,7 +366,7 @@ Display(HDC DeviceContext, HWND hWnd, int width, int height)
 
     mat4_rotate(model, Angle, 1.0f, 1.0f, 0.0f);
     mat4_translate(view, 0.0f, 0.0f, -3.0f);
-    mat4_perspective(projection, 3.1415926f/4.0f, (float)width/(float)height, 0.1f, 100.0f);
+    mat4_perspective(projection, M_PI/4.0f, (float)width/(float)height, 0.1f, 100.0f);
 
     unsigned int modelLoc = glGetUniformLocation(shaderProgram, "model");
     unsigned int viewLoc  = glGetUniformLocation(shaderProgram, "view");
@@ -401,7 +405,7 @@ DisplayMultiple(HDC DeviceContext, HWND hWnd, int width, int height)
     mat4_identity(view);
     mat4_translate(view, 0.0f, 0.0f, -3.0f);
     mat4_identity(projection);
-    mat4_perspective(projection, 3.1415926f/4.0f, (float)width/height, 0.1f, 100.0f);
+    mat4_perspective(projection, M_PI/4.0f, (float)width/height, 0.1f, 100.0f);
 
     unsigned int viewLoc       = glGetUniformLocation(shaderProgram, "view");
     unsigned int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
@@ -460,7 +464,7 @@ DisplayMultipleCamera(HDC DeviceContext, HWND hWnd, int width, int height)
                 cameraUp[0], cameraUp[1], cameraUp[2]); 
 
     mat4 projection;
-    mat4_perspective(projection, 3.1415926f/4.0f, (float)width/height, 0.1f, 100.0f);
+    mat4_perspective(projection, M_PI/4.0f, (float)width/height, 0.1f, 100.0f);
 
     unsigned int viewLoc       = glGetUniformLocation(shaderProgram, "view");
     unsigned int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
@@ -485,6 +489,67 @@ DisplayMultipleCamera(HDC DeviceContext, HWND hWnd, int width, int height)
         float thisAngle = frameAngle + i * 20.0f;
         mat4_rotate_inplace(model, radians(thisAngle), 1.0f, 0.3f, 0.1f);
         mat4_translate_inplace(model, x, y, z);
+
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+        
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+
+    Angle += 10.0f * deltaTime;
+    if(Angle >= 360.0f) Angle -= 360.0f;
+    
+    SwapBuffers(DeviceContext);
+}
+
+void 
+DisplayMultipleRoom(HDC DeviceContext, HWND hWnd, int width, int height)
+{
+    DWORD currentTime = GetTickCount(); 
+    deltaTime = (currentTime - lastTime) * 0.001f;
+    lastTime = currentTime;
+
+    SetupViewport(hWnd);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUseProgram(shaderProgram);
+
+    mat4 view;
+    mat4_lookAt(view,
+                cameraPosition[0], cameraPosition[1], cameraPosition[2],
+                cameraPosition[0] + cameraFront[0], cameraPosition[1] + cameraFront[1], cameraPosition[2] + cameraFront[2],
+                cameraUp[0], cameraUp[1], cameraUp[2]); 
+
+    mat4 projection;
+    mat4_perspective(projection, M_PI/4.0f, (float)width/height, 0.1f, 100.0f);
+
+    unsigned int viewLoc       = glGetUniformLocation(shaderProgram, "view");
+    unsigned int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+
+    glUniformMatrix4fv(viewLoc,       1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, &projection[0][0]);
+    
+    unsigned int modelLoc      = glGetUniformLocation(shaderProgram, "model");
+    unsigned int isRoomCubeLoc = glGetUniformLocation(shaderProgram, "isRoomCube");
+    glUniform1i(isRoomCubeLoc, 1);
+
+    float frameAngle = Angle;
+    // ROOM CUBE
+    
+    // OTHER CUBES
+    glBindVertexArray(VAO);
+    for (unsigned int i = 0; i < 10; ++i)
+    {
+        float x = cubePositions[i * 3 + 0];
+        float y = cubePositions[i * 3 + 1];
+        float z = cubePositions[i * 3 + 2];
+        
+        glUniform1i(isRoomCubeLoc, 1);
+        
+        mat4 model;
+        mat4_identity(model);
+
 
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
         

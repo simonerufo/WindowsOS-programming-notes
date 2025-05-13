@@ -1,5 +1,6 @@
 #include <math.h>
 
+#define M_PI 3.1415926f
 /* 4×4 matrix in column-major order */
 typedef float mat4[4][4];
 
@@ -209,5 +210,12 @@ void mat4_lookAt(mat4 out,
 
 float radians(float degrees)
 {
-    return degrees * (3.1415926f/180.0f);
+    return degrees * (M_PI/180.0f);
+}
+
+void mat4_scale(mat4 out, float x, float y, float z)
+{
+   out[0][0] = x * out[0][0];
+   out[1][1] = y * out[1][1];
+   out[2][2] = z * out[2][2];
 }
