@@ -1,0 +1,15 @@
+To achieve a draggable and spinning cube in C with OpenGL (Win32 API)
+
+1-  Draw a cube using OpenGL.
+
+2-  Handle mouse events using the Win32 API:
+
+    2.1-    Track mouse drag movement. 
+                                        (BOOL DragDetect(
+                                           [in] HWND  hwnd,
+                                           [in] POINT pt
+                                         );)
+
+    2.2-    Detect release to start spinning.
+
+3- Apply rotation in real-time based on the drag delta.
