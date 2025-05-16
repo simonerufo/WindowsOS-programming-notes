@@ -3,3 +3,5 @@ Holospace & OpenXR: https://learn.microsoft.com/en-us/windows/mixed-reality/deve
 OpenXR C: https://medium.com/@javiercarranzaburgueno/an-easy-openxr-vr-implementation-for-c-games-93c161321a3b
 
 DirectX11 tutorial: http://www.directxtutorial.com/default.aspx 
+
+DirectX UWP: https://learn.microsoft.com/en-us/windows/uwp/gaming/tutorial--setting-up-the-games-infrastructure
