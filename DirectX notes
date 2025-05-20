@@ -1,0 +1,22 @@
+BasicXRApp:
+
+// -- Variables -- //
+
+m_device: GPU utilizzata
+
+m_deviceContext: contiene le impostazioni ed il contesto rispetto all'utilizzo della GPU ( stato della Pipeline e comandi di Rendering usando le risorse della GPU)
+
+m_vertexShader: si occupa di operazioni di load e texture sampling 
+
+m_pixelShader: un programma che si occupa di caricare variabili, texture data e interpolazione tra vertici per produrre pixel a schermo
+
+m_inputLayout: è un oggetto creato da un array di descrizioni di elementi dati in input e un puntatore alla shader compilata
+
+m_modelCBuffer: è la matrice di riferimento dell'oggetto istanziato che viene trasferito dallo spazio "locale" allo spazio del "mondo"
+
+m_viewProjectionCBuffer: è la moltiplicazione delle matrici View e Projection (View: matrice di riferimento per quello che si guardando nello spazio
+Projection: la matrice che definisce le proiezioni prospettiche rispetto alla vista)
+
+m_reversedZDepthNoStencilTest: "A depth buffer stores depth information to control which areas of polygons are rendered rather than hidden from view. A stencil buffer is used to mask pixels in an image, to produce special effects, including compositing; decaling; dissolves, fades, and swipes; outlines and silhouettes; and two-sided stencil." 
+
+// -- -- //
